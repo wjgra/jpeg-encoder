@@ -50,13 +50,20 @@ int main(){
     SDL_RenderPresent(renderer);
 
     // Encode image as JPEG
-    jpeg::Encoder enc(inputBmp);
+    jpeg::JPEGEncoder enc(inputBmp);
     jpeg::JPEGImage outputJpeg = enc.getJPEGImageData();
-    jpeg::Decoder dec(outputJpeg);
+    // jpeg::Decoder dec(outputJpeg);
     // jpeg::BitmapImage outputBmp = dec.getBitmapImageData();
 
     // Display post-encoding image in right half of window
     // Consider using two windows instead...
+
+    // temp display colour mapped data
+    SDL_Texture* outputBmpTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB24, SDL_TEXTUREACCESS_STATIC, enc.temp.width, enc.temp.height);
+    SDL_UpdateTexture(outputBmpTexture, nullptr, enc.temp.data.data(), enc.temp.width * 3);
+    SDL_Rect rightHalf = {.x = enc.temp.width, .y = 0,  .w = enc.temp.width, .h = enc.temp.height};
+    SDL_RenderCopy(renderer, outputBmpTexture, nullptr, &rightHalf);
+    SDL_RenderPresent(renderer);
 
     mainLoop(window);
     return EXIT_SUCCESS;
