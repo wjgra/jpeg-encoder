@@ -2,34 +2,13 @@
 #define _JPEG_ENCODER_HPP_
 
 #include <string>
-#include <array>
-#include <vector>
 
 #include "..\inc\bitmap_image.hpp"
 #include "..\inc\jpeg_image.hpp"
+#include "..\inc\colour_mapping.hpp"
 
 
 namespace jpeg{
-
-    struct ColourMappedImageData{
-        uint16_t width, height;
-        std::vector<std::array<uint8_t, 3>> data;
-    };
-
-    class ColourMapper{
-    public:
-        virtual ColourMappedImageData map(BitmapImage const& inputImage) const = 0;
-    };
-
-    class RGBToRGBMapper : public ColourMapper{
-    public:
-        virtual ColourMappedImageData map(BitmapImage const& bmp) const override;
-    };
-
-    class RGBToYCbCrMapper : public ColourMapper{
-    public:
-       virtual ColourMappedImageData map(BitmapImage const& bmp) const override;
-    };
 
     class BlockGenerator{
     public:
@@ -55,15 +34,15 @@ namespace jpeg{
     public:
         bool saveJPEGToFile(std::string const& savePath);
         JPEGImage getJPEGImageData();
-        ColourMappedImageData temp;
+        ColourMappedImageData temp; // to delete - demonstrates colour mapping
     private:
         JPEGImage jpegImageData;
         // references to encoder components
-        ColourMapper const& colourMapper;
+        /* ColourMapper const& colourMapper;
         BlockGenerator const& blockGenerator;
         DiscreteCosineTransformer const& discreteCosineTransform;
         Quantiser const& quantisation;
-        EntropyEncoder const& entropyEncoder;
+        EntropyEncoder const& entropyEncoder; */
     };
 
     class JPEGEncoder : public Encoder{

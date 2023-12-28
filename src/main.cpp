@@ -1,5 +1,6 @@
 #define SDL_MAIN_HANDLED
 #include <SDL_main.h>
+#include <chrono>
 
 #include "..\inc\window.hpp"
 #include "..\inc\encoder.hpp"
@@ -50,7 +51,9 @@ int main(){
     SDL_RenderPresent(renderer);
 
     // Encode image as JPEG
+    auto tStart = std::chrono::high_resolution_clock::now();
     jpeg::JPEGEncoder enc(inputBmp);
+    auto tEnd = std::chrono::high_resolution_clock::now();
     jpeg::JPEGImage outputJpeg = enc.getJPEGImageData();
     // jpeg::Decoder dec(outputJpeg);
     // jpeg::BitmapImage outputBmp = dec.getBitmapImageData();
@@ -64,6 +67,13 @@ int main(){
     SDL_Rect rightHalf = {.x = enc.temp.width, .y = 0,  .w = enc.temp.width, .h = enc.temp.height};
     SDL_RenderCopy(renderer, outputBmpTexture, nullptr, &rightHalf);
     SDL_RenderPresent(renderer);
+
+    auto timeToEncode = 1e-3 * std::chrono::duration_cast<std::chrono::microseconds>(tEnd - tStart).count();
+    std::string updatedTitle = std::string("BMP-to-JPEG (") 
+        + std::to_string(inputBmp.width) + std::string("x")
+        + std::to_string(inputBmp.height) + std::string(", ")
+        + std::to_string(timeToEncode) + std::string(" ms)");
+    SDL_SetWindowTitle(window.getWindow(), updatedTitle.c_str());
 
     mainLoop(window);
     return EXIT_SUCCESS;
