@@ -1,6 +1,12 @@
 #include "..\inc\bitmap_image.hpp"
 
-jpeg::BitmapImage::BitmapImage(std::string const& loadPath){
+jpeg::BitmapImageRGB::BitmapImageRGB() : width{0}, height{0} {};
+
+jpeg::BitmapImageRGB::BitmapImageRGB(uint16_t w, uint16_t h) : width{w}, height{h} {
+    data.resize(width * height);
+}
+
+jpeg::BitmapImageRGB::BitmapImageRGB(std::string const& loadPath){
     SDL_Surface* image = SDL_LoadBMP(loadPath.c_str());   
     if (!image){
         std::cout << "Failed to load image at " << loadPath << " (" << SDL_GetError() << ")\n";

@@ -1,4 +1,4 @@
-#include "../inc/window.hpp"
+#include "window.hpp"
 
 Window::Window(unsigned int width, unsigned int height, std::string const& title) : winWidth{width}, winHeight{height}{
     // Initialise SDL

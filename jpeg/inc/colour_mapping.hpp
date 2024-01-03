@@ -14,17 +14,17 @@ namespace jpeg{
 
     class ColourMapper{
     public:
-        virtual ColourMappedImageData map(BitmapImage const& inputImage) const = 0;
+        virtual ColourMappedImageData map(BitmapImageRGB const& inputImage) const = 0;
     };
 
     class RGBToRGBMapper : public ColourMapper{
     public:
-        virtual ColourMappedImageData map(BitmapImage const& bmp) const override;
+        virtual ColourMappedImageData map(BitmapImageRGB const& bmp) const override;
     };
 
     class RGBToYCbCrMapper : public ColourMapper{
     public:
-       virtual ColourMappedImageData map(BitmapImage const& bmp) const override;
+       virtual ColourMappedImageData map(BitmapImageRGB const& bmp) const override;
     };
 
 }

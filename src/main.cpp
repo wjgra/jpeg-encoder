@@ -2,9 +2,9 @@
 #include <SDL_main.h>
 #include <chrono>
 
-#include "..\inc\window.hpp"
-#include "..\inc\encoder.hpp"
-#include "..\inc\decoder.hpp"
+#include "..\common\window.hpp"
+#include "..\jpeg\inc\encoder.hpp"
+#include "..\jpeg\inc\decoder.hpp"
 
 void mainLoop(Window& window){
     while (true){
@@ -32,7 +32,7 @@ void mainLoop(Window& window){
 
 int main(){
     // Load test image
-    jpeg::BitmapImage inputBmp("img\\leclerc.bmp");
+    jpeg::BitmapImageRGB inputBmp("img\\leclerc.bmp");
     if (inputBmp.width == 0 || inputBmp.height == 0){
         return EXIT_FAILURE;
     }
@@ -56,23 +56,23 @@ int main(){
     auto tEnd = std::chrono::high_resolution_clock::now();
     jpeg::JPEGImage outputJpeg = enc.getJPEGImageData();
     // jpeg::Decoder dec(outputJpeg);
-    // jpeg::BitmapImage outputBmp = dec.getBitmapImageData();
+    // jpeg::BitmapImageRGB outputBmp = dec.getBitmapImageData();
 
     // Display post-encoding image in right half of window
     // Consider using two windows instead...
 
     // temp display colour mapped data
-    SDL_Texture* outputBmpTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB24, SDL_TEXTUREACCESS_STATIC, enc.temp.width, enc.temp.height);
+    /* SDL_Texture* outputBmpTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB24, SDL_TEXTUREACCESS_STATIC, enc.temp.width, enc.temp.height);
     SDL_UpdateTexture(outputBmpTexture, nullptr, enc.temp.data.data(), enc.temp.width * 3);
     SDL_Rect rightHalf = {.x = enc.temp.width, .y = 0,  .w = enc.temp.width, .h = enc.temp.height};
     SDL_RenderCopy(renderer, outputBmpTexture, nullptr, &rightHalf);
-    SDL_RenderPresent(renderer);
+    SDL_RenderPresent(renderer); */
 
     auto timeToEncode = 1e-3 * std::chrono::duration_cast<std::chrono::microseconds>(tEnd - tStart).count();
     std::string updatedTitle = std::string("BMP-to-JPEG (") 
         + std::to_string(inputBmp.width) + std::string("x")
-        + std::to_string(inputBmp.height) + std::string(", ")
-        + std::to_string(timeToEncode) + std::string(" ms)");
+        + std::to_string(inputBmp.height) + std::string(", encode: ")
+        + std::to_string(timeToEncode) + std::string(" ms, decode: XX ms)");
     SDL_SetWindowTitle(window.getWindow(), updatedTitle.c_str());
 
     mainLoop(window);

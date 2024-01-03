@@ -11,7 +11,7 @@ namespace jpeg{
     public:
         Decoder(JPEGImage inputImage);
         void saveBitmapToFile(std::string const& savePath);
-        BitmapImage getBitmapImageData();
+        BitmapImageRGB getBitmapImageData();
     };
 };
 
