@@ -9,9 +9,15 @@ jpeg::Encoder::Encoder(BitmapImageRGB const& inputImage,
     // auto colourMappedImageData = colourMapper.map(inputImage);
 
     // change colour mapper to act on blocks
-    
+    // BitmapImageRGB testImage(8,8);
     BlockGrid blockGrid(inputImage);
-    for (auto block : blockGrid){
+    int i = 0, j=0;
+    // Issue: merge row and block iterators, so a single range-for loop can be used
+    for (auto rowIt = blockGrid.begin() ; rowIt != blockGrid.end() ; ++rowIt){
+        for (auto blockIt = blockGrid.beginRow(rowIt) ; blockIt != blockGrid.endRow(rowIt) ; ++blockIt){
+            // std::cout << i << ", " << j++ << "\n";
+        }
+        ++i;j=0;
     }
 }
 
