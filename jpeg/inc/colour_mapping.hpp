@@ -22,12 +22,12 @@ namespace jpeg{
 
     class RGBToRGBMapper : public ColourMapper{
     protected:
-        virtual ColourMappedBlock applyMapping(jpeg::BlockGrid::Block const& inputBlock) const override;
+        ColourMappedBlock applyMapping(jpeg::BlockGrid::Block const& inputBlock) const override;
     };
 
     class RGBToYCbCrMapper : public ColourMapper{
     protected:
-        virtual ColourMappedBlock applyMapping(jpeg::BlockGrid::Block const& inputBlock) const override;
+        ColourMappedBlock applyMapping(jpeg::BlockGrid::Block const& inputBlock) const override;
     };
 }
 #endif

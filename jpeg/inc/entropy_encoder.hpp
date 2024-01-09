@@ -14,6 +14,13 @@ namespace jpeg{
     class EntropyEncoder{
     public:
         EntropyChannelOutput encode(QuantisedChannelOutput const& input) const;
+    protected:
+        virtual EntropyChannelOutput applyEncoding(QuantisedChannelOutput const& input) const = 0;
+    };
+
+    class HuffmanEncoder : public EntropyEncoder{
+    protected:
+        EntropyChannelOutput applyEncoding(QuantisedChannelOutput const& input) const override;
     };
 
 }
