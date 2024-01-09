@@ -1,14 +1,27 @@
 #include "..\inc\encoder.hpp"
 
 jpeg::Encoder::Encoder(BitmapImageRGB const& inputImage,
-                    ColourMapper const& colourMapper,
-                    DiscreteCosineTransformer const& discreteCosineTransform,
-                    Quantiser const& quantisation,
-                    EntropyEncoder const& entropyEncoder)
+                       ColourMapper const& colourMapper,
+                       DiscreteCosineTransformer const& discreteCosineTransformer,
+                       Quantiser const& quantiser,
+                       EntropyEncoder const& entropyEncoder)
+                       /* OPTIONAL: sequential/progressive option; downsampling option */
 {
     BlockGrid blockGrid(inputImage);
     for (auto block : blockGrid){
-
+        ColourMappedBlock mappedBlock = colourMapper.map(block);
+        /* 
+        OPTIONAL : downsampling! Recall this is 'the point' of using YCbCr
+        Note that components are processed separately
+        Consider having modules act on components?
+         */
+        for (auto channel : mappedBlock.data){
+            DCTChannelOutput dctData = discreteCosineTransformer.transform(channel);
+            QuantisedChannelOutput quantisedOutput = quantiser.quantise(dctData);
+            EntropyChannelOutput entropyCodedOutput = entropyEncoder.encode(quantisedOutput);
+            // Push to stream
+        }
+        // Push to stream
     }
 }
 
@@ -23,6 +36,6 @@ jpeg::JPEGImage jpeg::Encoder::getJPEGImageData(){
 }
 
 jpeg::JPEGEncoder::JPEGEncoder(BitmapImageRGB const& inputImage) : 
-    Encoder(inputImage, /* RGBToRGBMapper() */RGBToYCbCrMapper(), DiscreteCosineTransformer(), Quantiser(), EntropyEncoder())
+    Encoder(inputImage, /* RGBToRGBMapper() */RGBToYCbCrMapper(), NaiveDCTTransformer(), Quantiser(), EntropyEncoder())
 {
 }

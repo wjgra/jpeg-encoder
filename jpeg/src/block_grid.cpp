@@ -3,7 +3,7 @@
 jpeg::BlockGrid::BlockGrid(BitmapImageRGB const& input) : imageData{input}{};
 
 jpeg::BlockGrid::BlockIterator::BlockIterator(underlying_pointer p, uint16_t w, uint16_t h) : 
-    ptr{p}, gridWidth{w}, gridHeight{h}, blockRowPos{0}, blockColPos{0}{}
+    ptr{p}, blockRowPos{0}, blockColPos{0}, gridWidth{w}, gridHeight{h}{}
 
 jpeg::BlockGrid::BlockIterator::value_type jpeg::BlockGrid::BlockIterator::operator*() const{
     Block output{};

@@ -1,24 +1,23 @@
 #include "../inc/colour_mapping.hpp"
 
-jpeg::ColourMappedImageData jpeg::RGBToRGBMapper::map(BitmapImageRGB const& bmp) const{
-    ColourMappedImageData output{
-        .width = bmp.width, 
-        .height = bmp.height, 
-        .data = std::vector<std::array<uint8_t, 3>>(bmp.data.size())
-    };
-    for (size_t i = 0 ; i < bmp.data.size() ; ++i){
-        // Passthrough mapping
-        output.data[i] = {bmp.data[i].r, bmp.data[i].g, bmp.data[i].b};
+jpeg::ColourMappedBlock jpeg::ColourMapper::map(jpeg::BlockGrid::Block const& inputBlock) const{
+    return applyMapping(inputBlock);
+}
+
+jpeg::ColourMappedBlock jpeg::RGBToRGBMapper::applyMapping(jpeg::BlockGrid::Block const& inputBlock) const{
+    ColourMappedBlock output;
+    // Passthrough mapping
+    for (size_t i = 0 ; i < inputBlock.data.size() ; ++i){
+        // output.data[i] = {inputBlock.data[i].r, inputBlock.data[i].g, inputBlock.data[i].b};
+        output.data[0][i] = inputBlock.data[i].r;
+        output.data[1][i] = inputBlock.data[i].g;
+        output.data[2][i] = inputBlock.data[i].b;
     }
     return output;
 }
 
-jpeg::ColourMappedImageData jpeg::RGBToYCbCrMapper::map(BitmapImageRGB const& bmp) const{
-    ColourMappedImageData output{
-        .width = bmp.width, 
-        .height = bmp.height, 
-        .data = std::vector<std::array<uint8_t, 3>>(bmp.data.size())
-    };
+jpeg::ColourMappedBlock jpeg::RGBToYCbCrMapper::applyMapping(jpeg::BlockGrid::Block const& inputBlock) const{
+    ColourMappedBlock output;
     // Conversion from https://en.wikipedia.org/wiki/YCbCr#JPEG_conversion
     auto Y = [](jpeg::BitmapImageRGB::PixelData rgb){
         return uint8_t(0 + 0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b);
@@ -29,12 +28,15 @@ jpeg::ColourMappedImageData jpeg::RGBToYCbCrMapper::map(BitmapImageRGB const& bm
     auto Cr = [](jpeg::BitmapImageRGB::PixelData rgb){
         return uint8_t(128 + 0.5 * rgb.r - 0.418688 * rgb.g - 0.081312 * rgb.b);
     };
-    for (size_t i = 0 ; i < bmp.data.size() ; ++i){
-        output.data[i] = {
-            Y(bmp.data[i]),
-            Cb(bmp.data[i]),
-            Cr(bmp.data[i])
-        };
+    for (size_t i = 0 ; i < inputBlock.data.size() ; ++i){
+        /* output.data[i] = {
+            Y(inputBlock.data[i]),
+            Cb(inputBlock.data[i]),
+            Cr(inputBlock.data[i])
+        }; */
+        output.data[0][i] = Y(inputBlock.data[i]);
+        output.data[1][i] = Cb(inputBlock.data[i]);
+        output.data[2][i] = Cr(inputBlock.data[i]);
     }
     return output;
 }

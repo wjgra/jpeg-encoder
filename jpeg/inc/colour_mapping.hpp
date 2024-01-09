@@ -2,30 +2,32 @@
 #define _JPEG_COLOUR_MAPPING_HPP_
 
 #include "..\inc\bitmap_image.hpp"
+#include "..\inc\block_grid.hpp"
+
 #include <array>
 #include <vector>
 
 namespace jpeg{
-
-    struct ColourMappedImageData{
-        uint16_t width, height;
-        std::vector<std::array<uint8_t, 3>> data;
+    struct ColourMappedBlock{
+        // std::array<std::array<uint8_t, 3>, jpeg::BlockGrid::blockSize * jpeg::BlockGrid::blockSize> data;
+        using ChannelBlock = std::array<uint8_t, jpeg::BlockGrid::blockSize * jpeg::BlockGrid::blockSize>;
+        std::array<ChannelBlock, 3> data;
     };
-
     class ColourMapper{
     public:
-        virtual ColourMappedImageData map(BitmapImageRGB const& inputImage) const = 0;
+        ColourMappedBlock map(jpeg::BlockGrid::Block const& inputBlock) const;
+    protected:
+        virtual ColourMappedBlock applyMapping(jpeg::BlockGrid::Block const& inputBlock) const = 0;
     };
 
     class RGBToRGBMapper : public ColourMapper{
-    public:
-        virtual ColourMappedImageData map(BitmapImageRGB const& bmp) const override;
+    protected:
+        virtual ColourMappedBlock applyMapping(jpeg::BlockGrid::Block const& inputBlock) const override;
     };
 
     class RGBToYCbCrMapper : public ColourMapper{
-    public:
-       virtual ColourMappedImageData map(BitmapImageRGB const& bmp) const override;
+    protected:
+        virtual ColourMappedBlock applyMapping(jpeg::BlockGrid::Block const& inputBlock) const override;
     };
-
 }
 #endif
