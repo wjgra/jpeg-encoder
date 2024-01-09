@@ -28,7 +28,7 @@ namespace jpeg{
 
     class JPEGEncoder : public Encoder{
     public:
-        JPEGEncoder(BitmapImageRGB const& inputImage);
+        JPEGEncoder(BitmapImageRGB const& inputImage, int quality = 50);
     };
 }
 

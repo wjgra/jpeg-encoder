@@ -52,7 +52,7 @@ int main(){
 
     // Encode image as JPEG
     auto tStart = std::chrono::high_resolution_clock::now();
-    jpeg::JPEGEncoder enc(inputBmp);
+    jpeg::JPEGEncoder enc(inputBmp, 80);
     auto tEnd = std::chrono::high_resolution_clock::now();
     jpeg::JPEGImage outputJpeg = enc.getJPEGImageData();
     // jpeg::Decoder dec(outputJpeg);

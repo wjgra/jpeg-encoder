@@ -5,6 +5,7 @@
 #include "..\inc\block_grid.hpp" // Issue: separate dependencies of block and block grid
 
 #include <array>
+#include <cmath>
 
 namespace jpeg{
 
@@ -24,9 +25,7 @@ namespace jpeg{
 
     class NaiveDCTTransformer : public DiscreteCosineTransformer{
     protected:
-        DCTChannelOutput applyTransform(ColourMappedBlock::ChannelBlock const& inputChannel) const override{
-            return DCTChannelOutput(); // to implement
-        };
+        DCTChannelOutput applyTransform(ColourMappedBlock::ChannelBlock const& inputChannel) const override;
     };
 
     /* Add faster transformer */

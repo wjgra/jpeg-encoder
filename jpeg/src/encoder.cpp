@@ -9,13 +9,13 @@ jpeg::Encoder::Encoder(BitmapImageRGB const& inputImage,
 {
     BlockGrid blockGrid(inputImage);
     for (auto block : blockGrid){
-        ColourMappedBlock mappedBlock = colourMapper.map(block);
+        ColourMappedBlock colourMappedBlock = colourMapper.map(block);
         /* 
         OPTIONAL : downsampling! Recall this is 'the point' of using YCbCr
         Note that components are processed separately
         Consider having modules act on components?
          */
-        for (auto channel : mappedBlock.data){
+        for (auto channel : colourMappedBlock.data){
             DCTChannelOutput dctData = discreteCosineTransformer.transform(channel);
             QuantisedChannelOutput quantisedOutput = quantiser.quantise(dctData);
             EntropyChannelOutput entropyCodedOutput = entropyEncoder.encode(quantisedOutput);
@@ -35,7 +35,7 @@ jpeg::JPEGImage jpeg::Encoder::getJPEGImageData(){
     return jpegImageData;
 }
 
-jpeg::JPEGEncoder::JPEGEncoder(BitmapImageRGB const& inputImage) : 
-    Encoder(inputImage, /* RGBToRGBMapper() */RGBToYCbCrMapper(), NaiveDCTTransformer(), Quantiser(), EntropyEncoder())
+jpeg::JPEGEncoder::JPEGEncoder(BitmapImageRGB const& inputImage, int quality) : 
+    Encoder(inputImage, /* RGBToRGBMapper() */RGBToYCbCrMapper(), NaiveDCTTransformer(), Quantiser(quality), EntropyEncoder())
 {
 }
