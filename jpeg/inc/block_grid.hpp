@@ -11,7 +11,7 @@ namespace jpeg{
 class BlockGrid{
     public:
         BlockGrid(BitmapImageRGB const& input);
-        uint16_t const static blockSize = 8; // Issue: include support for downsampling (e.g. via 16x16 blocks)
+        uint8_t const static blockSize = 8; // Issue: include support for downsampling (e.g. via 16x16 blocks)
 
         struct Block{
             std::array<BitmapImageRGB::PixelData, blockSize * blockSize> data;

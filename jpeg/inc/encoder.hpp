@@ -13,14 +13,13 @@
 
 namespace jpeg{
     class Encoder{
-    protected:
+    public:
         Encoder(BitmapImageRGB const& inputImage,
                 ColourMapper const& colourMapper,
                 DiscreteCosineTransformer const& discreteCosineTransformer,
                 Quantiser const& quantiser,
                 EntropyEncoder const& entropyEncoder);
-    public:
-        bool saveJPEGToFile(std::string const& savePath);
+        void saveJPEGToFile(std::string const& savePath);
         JPEGImage getJPEGImageData();
     private:
         JPEGImage jpegImageData;

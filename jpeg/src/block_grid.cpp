@@ -48,12 +48,12 @@ jpeg::BlockGrid::BlockIterator& jpeg::BlockGrid::BlockIterator::operator++(){
             if (remainingDataRows == 0){
                 remainingDataRows = blockSize;
             }
-            uint8_t offsetToNextBlockRow = (remainingDataRows - 1) * gridWidth;
+            uint32_t offsetToNextBlockRow = (remainingDataRows - 1) * gridWidth;
             ptr += offsetToNextBlockRow;  
         }      
         blockColPos = 0;
         ++blockRowPos;
-    }
+        }
     return *this;
 }
 

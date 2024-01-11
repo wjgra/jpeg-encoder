@@ -54,26 +54,40 @@ int main(){
     auto tStart = std::chrono::high_resolution_clock::now();
     jpeg::JPEGEncoder enc(inputBmp, 80);
     auto tEnd = std::chrono::high_resolution_clock::now();
-    jpeg::JPEGImage outputJpeg = enc.getJPEGImageData();
-    // jpeg::Decoder dec(outputJpeg);
-    // jpeg::BitmapImageRGB outputBmp = dec.getBitmapImageData();
-
-    // Display post-encoding image in right half of window
-    // Consider using two windows instead...
-
-    // temp display colour mapped data
-    /* SDL_Texture* outputBmpTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB24, SDL_TEXTUREACCESS_STATIC, enc.temp.width, enc.temp.height);
-    SDL_UpdateTexture(outputBmpTexture, nullptr, enc.temp.data.data(), enc.temp.width * 3);
-    SDL_Rect rightHalf = {.x = enc.temp.width, .y = 0,  .w = enc.temp.width, .h = enc.temp.height};
-    SDL_RenderCopy(renderer, outputBmpTexture, nullptr, &rightHalf);
-    SDL_RenderPresent(renderer); */
 
     auto timeToEncode = 1e-3 * std::chrono::duration_cast<std::chrono::microseconds>(tEnd - tStart).count();
     std::string updatedTitle = std::string("BMP-to-JPEG (") 
         + std::to_string(inputBmp.width) + std::string("x")
         + std::to_string(inputBmp.height) + std::string(", encode: ")
-        + std::to_string(timeToEncode) + std::string(" ms, decode: XX ms)");
+        + std::to_string(timeToEncode) + std::string(" ms)");
     SDL_SetWindowTitle(window.getWindow(), updatedTitle.c_str());
+
+    // Decode encoded JPEG image
+    jpeg::JPEGImage outputJpeg = enc.getJPEGImageData();
+    tStart = std::chrono::high_resolution_clock::now();
+    jpeg::JPEGDecoder dec(outputJpeg, 80);
+    tEnd = std::chrono::high_resolution_clock::now();
+
+    auto timeToDecode = 1e-3 * std::chrono::duration_cast<std::chrono::microseconds>(tEnd - tStart).count();
+    updatedTitle = std::string("BMP-to-JPEG (") 
+        + std::to_string(inputBmp.width) + std::string("x")
+        + std::to_string(inputBmp.height) + std::string(", encode: ")
+        + std::to_string(timeToEncode) + std::string(" ms, decode: ")
+        + std::to_string(timeToDecode) + std::string("XX ms)");
+    SDL_SetWindowTitle(window.getWindow(), updatedTitle.c_str());
+
+
+    jpeg::BitmapImageRGB outputBmp = dec.getBitmapImageData();
+    
+    // Display post-encoding image in right half of window
+    // Consider using two windows instead...
+
+    // temp display colour mapped data
+    SDL_Texture* outputBmpTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB24, SDL_TEXTUREACCESS_STATIC, outputBmp.width, outputBmp.height);
+    SDL_UpdateTexture(outputBmpTexture, nullptr, outputBmp.data.data(), outputBmp.width * 3);
+    SDL_Rect rightHalf = {.x = inputBmp.width, .y = 0,  .w = outputBmp.width, .h = outputBmp.height};
+    SDL_RenderCopy(renderer, outputBmpTexture, nullptr, &rightHalf);
+    SDL_RenderPresent(renderer);
 
     mainLoop(window);
     return EXIT_SUCCESS;

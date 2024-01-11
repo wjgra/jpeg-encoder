@@ -8,7 +8,7 @@
 namespace jpeg{
 
     struct QuantisedChannelOutput{
-        std::array<float, BlockGrid::blockSize * BlockGrid::blockSize> data;
+        std::array<int16_t, BlockGrid::blockSize * BlockGrid::blockSize> data;
     };
 
     class Quantiser{
