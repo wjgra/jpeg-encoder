@@ -7,14 +7,14 @@ jpeg::Decoder::Decoder(JPEGImage inputImage,
                 EntropyEncoder const& entropyEncoder) : bitmapImageData(inputImage.width, inputImage.height)   
 {
     std::vector<BlockGrid::Block> decodedBlocks;
+    std::array<int16_t, 3> lastDCValues = {0,0,0};
     for (auto const& blockData : inputImage.data){
-        
         ColourMappedBlock thisBlock;
         for (size_t channel = 0 ; channel < 3 ; ++channel/* auto const& channelScanData : blockData.components  */){
             // To do: extract enoded data from bitstream
             EntropyChannelOutput entropyEncodedData;
             entropyEncodedData.temp = blockData.components[channel].temp; // Temporary formulation
-            QuantisedChannelOutput quantisedData = entropyEncoder.decode(entropyEncodedData); // = un-entropy encode (Huff, RLE, zig) 
+            QuantisedChannelOutput quantisedData = entropyEncoder.decode(entropyEncodedData, lastDCValues[channel]); // = un-entropy encode (Huff, RLE, zig) 
             DCTChannelOutput dctData = quantiser.dequantise(quantisedData); // undo quantisation
             ColourMappedBlock::ChannelBlock colourMappedChannelData = discreteCosineTransformer.inverseTransform(dctData);// undo DCT
             thisBlock.data[channel] = colourMappedChannelData; //add to block

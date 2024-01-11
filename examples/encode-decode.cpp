@@ -30,7 +30,11 @@ void mainLoop(Window& window){
     }
 }
 
-int main(){
+int main(int argc, char *argv[]){
+    int qualityValue = 50;
+    if (argc > 1){
+        qualityValue = std::stoi(std::string(argv[1]));
+    }
     // Load test image
     jpeg::BitmapImageRGB inputBmp("img\\leclerc.bmp");
     if (inputBmp.width == 0 || inputBmp.height == 0){
@@ -52,7 +56,7 @@ int main(){
 
     // Encode image as JPEG
     auto tStart = std::chrono::high_resolution_clock::now();
-    jpeg::JPEGEncoder enc(inputBmp, 80);
+    jpeg::JPEGEncoder enc(inputBmp, qualityValue);
     auto tEnd = std::chrono::high_resolution_clock::now();
 
     auto timeToEncode = 1e-3 * std::chrono::duration_cast<std::chrono::microseconds>(tEnd - tStart).count();
@@ -65,7 +69,7 @@ int main(){
     // Decode encoded JPEG image
     jpeg::JPEGImage outputJpeg = enc.getJPEGImageData();
     tStart = std::chrono::high_resolution_clock::now();
-    jpeg::JPEGDecoder dec(outputJpeg, 80);
+    jpeg::JPEGDecoder dec(outputJpeg, qualityValue);
     tEnd = std::chrono::high_resolution_clock::now();
 
     auto timeToDecode = 1e-3 * std::chrono::duration_cast<std::chrono::microseconds>(tEnd - tStart).count();
@@ -73,7 +77,7 @@ int main(){
         + std::to_string(inputBmp.width) + std::string("x")
         + std::to_string(inputBmp.height) + std::string(", encode: ")
         + std::to_string(timeToEncode) + std::string(" ms, decode: ")
-        + std::to_string(timeToDecode) + std::string("XX ms)");
+        + std::to_string(timeToDecode) + std::string(" ms)");
     SDL_SetWindowTitle(window.getWindow(), updatedTitle.c_str());
 
 

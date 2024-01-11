@@ -1,9 +1,9 @@
 #ifndef _JPEG_QUANTISER_HPP_
 #define _JPEG_QUANTISER_HPP_
 
-#include "..\inc\discrete_cosine_transform.hpp"
-
 #include <cmath>
+
+#include "..\inc\discrete_cosine_transform.hpp"
 
 namespace jpeg{
 

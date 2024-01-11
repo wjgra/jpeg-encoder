@@ -7,12 +7,9 @@ jpeg::Encoder::Encoder(BitmapImageRGB const& inputImage,
                        EntropyEncoder const& entropyEncoder)
                        /* OPTIONAL: sequential/progressive option; downsampling option */
 {
-    BlockGrid blockGrid(inputImage);
-    // init entropy encoder - set dc diff for each channel to zero
-    
-    std::array<int16_t, 3> lastDCValues = {0,0,0}; // should be in entropy encoder
-
     jpegImageData.data.clear();
+    BlockGrid blockGrid(inputImage);
+    std::array<int16_t, 3> lastDCValues = {0,0,0};
     for (auto const& block : blockGrid){
         ColourMappedBlock colourMappedBlock = colourMapper.map(block);
         /* 
@@ -20,26 +17,15 @@ jpeg::Encoder::Encoder(BitmapImageRGB const& inputImage,
         Note that components are processed separately
         Consider having modules act on components?
          */
-        // JPEGImage::BlockData encodedBlock;
-        /* size_t chan = 0; // temp
-        for (auto channel : colourMappedBlock.data){
-            DCTChannelOutput dctData = discreteCosineTransformer.transform(channel);
-            QuantisedChannelOutput quantisedOutput = quantiser.quantise(dctData);
-            EntropyChannelOutput entropyCodedOutput = entropyEncoder.encode(quantisedOutput);
-            // Push to stream
-            // temp
-            entropyCodedOutput.temp.dcDifference = quantisedOutput.data[0] - lastDCValues[chan];
-            lastDCValues[chan] = quantisedOutput.data[0];
-            encodedBlock.components[chan++].temp = entropyCodedOutput.temp;
-        } */
         jpegImageData.data.emplace_back(); // new encoded block
         for (size_t channel = 0 ; channel < 3 ; ++channel){
             DCTChannelOutput dctData = discreteCosineTransformer.transform(colourMappedBlock.data[channel]);
             QuantisedChannelOutput quantisedOutput = quantiser.quantise(dctData);
-            EntropyChannelOutput entropyCodedOutput = entropyEncoder.encode(quantisedOutput);
+
+            EntropyChannelOutput entropyCodedOutput = entropyEncoder.encode(quantisedOutput, lastDCValues[channel]);
             // **Temporary** DC diff should be set by encoder...
-            entropyCodedOutput.temp.dcDifference = quantisedOutput.data[0] - lastDCValues[channel];
-            lastDCValues[channel] = quantisedOutput.data[0];
+            /* entropyCodedOutput.temp.dcDifference = quantisedOutput.data[0] - lastDCValues[channel];
+            lastDCValues[channel] = quantisedOutput.data[0]; */
             jpegImageData.data.back().components[channel].temp = entropyCodedOutput.temp;
             /* To do: temp (vector) should be replaced by bitstream*/
         }

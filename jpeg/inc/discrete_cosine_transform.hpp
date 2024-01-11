@@ -1,12 +1,11 @@
 #ifndef _JPEG_DISCRETE_COSINE_TRANSFORM_HPP_
 #define _JPEG_DISCRETE_COSINE_TRANSFORM_HPP_
 
-#include "..\inc\colour_mapping.hpp"
-#include "..\inc\block_grid.hpp" // Issue: separate dependencies of block and block grid
-
 #include <array>
 #include <cmath>
 
+#include "..\inc\colour_mapping.hpp"
+#include "..\inc\block_grid.hpp" // Issue: separate dependencies of block and block grid
 namespace jpeg{
 
     struct DCTChannelOutput{
@@ -23,6 +22,7 @@ namespace jpeg{
         virtual ColourMappedBlock::ChannelBlock applyInverseTransform(DCTChannelOutput  const& inputChannel) const = 0;
     };
 
+    /* Very slowly calculates the DCT/IDCT by direct calculation (in the naive manner) */
     class NaiveDCTTransformer : public DiscreteCosineTransformer{
     protected:
         DCTChannelOutput applyTransform(ColourMappedBlock::ChannelBlock const& inputChannel) const override;

@@ -39,3 +39,11 @@ jpeg::QuantisedChannelOutput jpeg::Quantiser::quantise(DCTChannelOutput const& d
     }
     return output;
 }
+
+jpeg::DCTChannelOutput jpeg::Quantiser::dequantise(jpeg::QuantisedChannelOutput const& quantisedChannelData) const{
+    DCTChannelOutput output;
+    for (size_t i = 0 ; i < quantisedChannelData.data.size() ; ++i){
+        output.data[i] = quantisedChannelData.data[i] * float(quantisationMatrix[i]);
+    }
+    return output;
+}

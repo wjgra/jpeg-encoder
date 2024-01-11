@@ -1,12 +1,18 @@
 #include "..\inc\entropy_encoder.hpp"
 
-jpeg::EntropyChannelOutput jpeg::EntropyEncoder::encode(QuantisedChannelOutput const& input) const{
-    QuantisedChannelOutput zigZagMappedChannelData = mapToZigZag(input);
-    RunLengthEncodedChannelOutput runLengthEncodedChannelData = applyRunLengthEncoding(zigZagMappedChannelData);
-    return applyEncoding(runLengthEncodedChannelData);
+jpeg::EntropyChannelOutput jpeg::EntropyEncoder::encode(QuantisedChannelOutput const& input, int16_t& lastDCValue) const{
+    QuantisedChannelOutput zigZagMappedChannelData = mapFromGridToZigZag(input);
+    RunLengthEncodedChannelOutput runLengthEncodedChannelData = applyRunLengthEncoding(zigZagMappedChannelData, lastDCValue);
+    return applyFinalEncoding(runLengthEncodedChannelData);
 }
 
-jpeg::QuantisedChannelOutput jpeg::EntropyEncoder::mapToZigZag(QuantisedChannelOutput const& input) const{
+jpeg::QuantisedChannelOutput jpeg::EntropyEncoder::decode(EntropyChannelOutput const& input, int16_t& lastDCValue) const{
+    RunLengthEncodedChannelOutput runLengthEncodedChannelData = input.temp;
+    QuantisedChannelOutput zigZagMappedChannelData = removeRunLengthEncoding(runLengthEncodedChannelData, lastDCValue);
+    return mapFromZigZagToGrid(zigZagMappedChannelData);
+}
+
+jpeg::QuantisedChannelOutput jpeg::EntropyEncoder::mapFromGridToZigZag(QuantisedChannelOutput const& input) const{
     QuantisedChannelOutput output;
     // Add first element of block
     size_t xPos = 0, yPos = 0;
@@ -68,7 +74,22 @@ jpeg::QuantisedChannelOutput jpeg::EntropyEncoder::mapToZigZag(QuantisedChannelO
     return output;
 }
 
-jpeg::RunLengthEncodedChannelOutput jpeg::EntropyEncoder::applyRunLengthEncoding(QuantisedChannelOutput const& input) const{
+jpeg::QuantisedChannelOutput jpeg::EntropyEncoder::mapFromZigZagToGrid(QuantisedChannelOutput const& input) const{
+    // There are presumably more elegant ways of inverting the mapping...
+    QuantisedChannelOutput indices;
+    for (size_t i = 0 ; i < BlockGrid::blockSize * BlockGrid::blockSize ; ++i){
+        indices.data[i] = i;
+    }
+    indices = mapFromGridToZigZag(indices);
+    QuantisedChannelOutput output;
+    size_t currentIndex = 0;
+    for (auto i : indices.data){
+        output.data[i] = input.data[currentIndex++];
+    }
+    return output;
+}
+
+jpeg::RunLengthEncodedChannelOutput jpeg::EntropyEncoder::applyRunLengthEncoding(QuantisedChannelOutput const& input, int16_t& lastDCValue) const{
     RunLengthEncodedChannelOutput output;
     uint8_t runLength = 1;
     int16_t coefficientOfCurrentRun = input.data[1];
@@ -85,11 +106,32 @@ jpeg::RunLengthEncodedChannelOutput jpeg::EntropyEncoder::applyRunLengthEncoding
     if (runLength == 1){
         output.acCoefficients.push_back({runLength, coefficientOfCurrentRun});
     }
+    output.dcDifference = input.data[0] - lastDCValue;
+    lastDCValue = input.data[0];
     return output;
 }
 
-jpeg::EntropyChannelOutput jpeg::HuffmanEncoder::applyEncoding(RunLengthEncodedChannelOutput const& input) const{
+jpeg::QuantisedChannelOutput jpeg::EntropyEncoder::removeRunLengthEncoding(RunLengthEncodedChannelOutput const& input, int16_t& lastDCValue) const{
+    QuantisedChannelOutput output;
+    output.data[0] = input.dcDifference + lastDCValue;
+    lastDCValue = output.data[0];
+    size_t blockIndex = 1; 
+    for (auto acRLEData : input.acCoefficients){
+        uint8_t runLength = acRLEData.runLength;
+        while (runLength-- > 0){
+            output.data[blockIndex] = acRLEData.value;
+            ++blockIndex;
+        }
+    }
+    return output;
+}
+
+jpeg::EntropyChannelOutput jpeg::HuffmanEncoder::applyFinalEncoding(RunLengthEncodedChannelOutput const& input) const{
     EntropyChannelOutput output;
     output.temp = input;
     return output;
+}
+
+jpeg::RunLengthEncodedChannelOutput jpeg::HuffmanEncoder::removeFinalEncoding(EntropyChannelOutput const& input) const{
+    return input.temp;
 }

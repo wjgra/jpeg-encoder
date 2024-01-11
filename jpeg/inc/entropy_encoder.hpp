@@ -6,7 +6,7 @@
 // temp
 #include "..\inc\block_grid.hpp"
 
-
+#include <cstdint>
 #include <vector>
 #include <array>
 
@@ -29,18 +29,22 @@ namespace jpeg{
 
     class EntropyEncoder{
     public:
-        EntropyChannelOutput encode(QuantisedChannelOutput const& input) const;/* non const if it keeps track of the coeff */
-        QuantisedChannelOutput decode(EntropyChannelOutput const& input) const;
+        EntropyChannelOutput encode(QuantisedChannelOutput const& input, int16_t& lastDCValue) const;/* non const if it keeps track of the coeff */
+        QuantisedChannelOutput decode(EntropyChannelOutput const& input, int16_t& lastDCValue) const;
     private:
-        QuantisedChannelOutput mapToZigZag(QuantisedChannelOutput const& input) const;
-        RunLengthEncodedChannelOutput applyRunLengthEncoding(QuantisedChannelOutput const& input) const;
+        QuantisedChannelOutput mapFromGridToZigZag(QuantisedChannelOutput const& input) const;
+        QuantisedChannelOutput mapFromZigZagToGrid(QuantisedChannelOutput const& input) const;
+        RunLengthEncodedChannelOutput applyRunLengthEncoding(QuantisedChannelOutput const& input, int16_t& lastDCValue) const;
+        QuantisedChannelOutput removeRunLengthEncoding(RunLengthEncodedChannelOutput const& input, int16_t& lastDCValue) const;
     protected:
-        virtual EntropyChannelOutput applyEncoding(RunLengthEncodedChannelOutput const& input) const = 0;
+        virtual EntropyChannelOutput applyFinalEncoding(RunLengthEncodedChannelOutput const& input) const = 0;
+        virtual RunLengthEncodedChannelOutput removeFinalEncoding(EntropyChannelOutput const& input) const = 0;
     };
 
     class HuffmanEncoder : public EntropyEncoder{
     protected:
-        EntropyChannelOutput applyEncoding(RunLengthEncodedChannelOutput const& input) const override;
+        EntropyChannelOutput applyFinalEncoding(RunLengthEncodedChannelOutput const& input) const override;
+        RunLengthEncodedChannelOutput removeFinalEncoding(EntropyChannelOutput const& input) const override;
     };
 
 }
