@@ -98,13 +98,13 @@ jpeg::RunLengthEncodedChannelOutput jpeg::EntropyEncoder::applyRunLengthEncoding
             ++runLength;
         }
         else{
-            output.acCoefficients.push_back({runLength, coefficientOfCurrentRun});
+            output.acCoefficients.emplace_back(runLength, coefficientOfCurrentRun);
             coefficientOfCurrentRun = input.data[i];
             runLength = 1;
         }
     }
     if (runLength == 1){
-        output.acCoefficients.push_back({runLength, coefficientOfCurrentRun});
+        output.acCoefficients.emplace_back(runLength, coefficientOfCurrentRun);
     }
     output.dcDifference = input.data[0] - lastDCValue;
     lastDCValue = input.data[0];
