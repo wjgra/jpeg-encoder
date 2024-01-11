@@ -16,16 +16,17 @@ namespace jpeg{
 
     class DiscreteCosineTransformer{
     public:
-    DCTChannelOutput transform(ColourMappedBlock::ChannelBlock const& inputChannel) const{
-        return applyTransform(inputChannel);
-    };
+        DCTChannelOutput transform(ColourMappedBlock::ChannelBlock const& inputChannel) const;
+        ColourMappedBlock::ChannelBlock inverseTransform(DCTChannelOutput  const& inputChannel) const;
     protected:
         virtual DCTChannelOutput applyTransform(ColourMappedBlock::ChannelBlock const& inputChannel) const = 0;
+        virtual ColourMappedBlock::ChannelBlock applyInverseTransform(DCTChannelOutput  const& inputChannel) const = 0;
     };
 
     class NaiveDCTTransformer : public DiscreteCosineTransformer{
     protected:
         DCTChannelOutput applyTransform(ColourMappedBlock::ChannelBlock const& inputChannel) const override;
+        ColourMappedBlock::ChannelBlock applyInverseTransform(DCTChannelOutput  const& inputChannel) const override;
     };
 
     /* Add faster transformer */

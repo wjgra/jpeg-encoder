@@ -1,5 +1,13 @@
 #include "..\inc\discrete_cosine_transform.hpp"
 
+jpeg::DCTChannelOutput jpeg::DiscreteCosineTransformer::transform(ColourMappedBlock::ChannelBlock const& inputChannel) const{
+    return applyTransform(inputChannel);
+}
+
+jpeg::ColourMappedBlock::ChannelBlock jpeg::DiscreteCosineTransformer::inverseTransform(DCTChannelOutput  const& inputChannel) const{
+    return applyInverseTransform(inputChannel);
+}
+
 jpeg::DCTChannelOutput jpeg::NaiveDCTTransformer::applyTransform(ColourMappedBlock::ChannelBlock const& inputChannel) const{
     std::array<int8_t, jpeg::BlockGrid::blockSize * jpeg::BlockGrid::blockSize> offsetChannelData;
     for (size_t i = 0 ; i < offsetChannelData.size() ; ++i){
@@ -21,6 +29,10 @@ jpeg::DCTChannelOutput jpeg::NaiveDCTTransformer::applyTransform(ColourMappedBlo
         }
     }
     return output;
+}
+
+jpeg::ColourMappedBlock::ChannelBlock jpeg::NaiveDCTTransformer::applyInverseTransform(DCTChannelOutput  const& inputChannel) const{
+    return ColourMappedBlock::ChannelBlock(); // to implement!
 }
 
 /* To do: implement fast DCT */

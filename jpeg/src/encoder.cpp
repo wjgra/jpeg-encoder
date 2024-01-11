@@ -9,35 +9,47 @@ jpeg::Encoder::Encoder(BitmapImageRGB const& inputImage,
 {
     BlockGrid blockGrid(inputImage);
     // init entropy encoder - set dc diff for each channel to zero
+    
+    std::array<int16_t, 3> lastDCValues = {0,0,0}; // should be in entropy encoder
+
     jpegImageData.data.clear();
-    for (auto block : blockGrid){
+    for (auto const& block : blockGrid){
         ColourMappedBlock colourMappedBlock = colourMapper.map(block);
         /* 
         OPTIONAL : downsampling! Recall this is 'the point' of using YCbCr
         Note that components are processed separately
         Consider having modules act on components?
          */
-        JPEGImage::BlockData thisBlock;
-        size_t chan = 0; // temp
-        int16_t lastDCValue = 0; // separate this...
+        // JPEGImage::BlockData encodedBlock;
+        /* size_t chan = 0; // temp
         for (auto channel : colourMappedBlock.data){
             DCTChannelOutput dctData = discreteCosineTransformer.transform(channel);
             QuantisedChannelOutput quantisedOutput = quantiser.quantise(dctData);
             EntropyChannelOutput entropyCodedOutput = entropyEncoder.encode(quantisedOutput);
             // Push to stream
             // temp
-            entropyCodedOutput.temp.dcDifference = quantisedOutput.data[0] - lastDCValue;
-            lastDCValue = quantisedOutput.data[0];
-            thisBlock.components[chan++].temp = entropyCodedOutput.temp;
+            entropyCodedOutput.temp.dcDifference = quantisedOutput.data[0] - lastDCValues[chan];
+            lastDCValues[chan] = quantisedOutput.data[0];
+            encodedBlock.components[chan++].temp = entropyCodedOutput.temp;
+        } */
+        jpegImageData.data.emplace_back(); // new encoded block
+        for (size_t channel = 0 ; channel < 3 ; ++channel){
+            DCTChannelOutput dctData = discreteCosineTransformer.transform(colourMappedBlock.data[channel]);
+            QuantisedChannelOutput quantisedOutput = quantiser.quantise(dctData);
+            EntropyChannelOutput entropyCodedOutput = entropyEncoder.encode(quantisedOutput);
+            // **Temporary** DC diff should be set by encoder...
+            entropyCodedOutput.temp.dcDifference = quantisedOutput.data[0] - lastDCValues[channel];
+            lastDCValues[channel] = quantisedOutput.data[0];
+            jpegImageData.data.back().components[channel].temp = entropyCodedOutput.temp;
+            /* To do: temp (vector) should be replaced by bitstream*/
         }
+
         // Push to stream
-        jpegImageData.data.push_back(thisBlock);
+        // jpegImageData.data.push_back(encodedBlock);
     }
     // Assign compressed data to struct
     jpegImageData.width = inputImage.width;
     jpegImageData.height = inputImage.height;
-
-    for (auto block : blockGrid){}
 }
 
 /* void jpeg::Encoder::saveJPEGToFile(std::string const& savePath){

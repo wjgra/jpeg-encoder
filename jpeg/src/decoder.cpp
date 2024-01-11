@@ -6,16 +6,29 @@ jpeg::Decoder::Decoder(JPEGImage inputImage,
                 Quantiser const& quantiser,
                 EntropyEncoder const& entropyEncoder) : bitmapImageData(inputImage.width, inputImage.height)   
 {
-    // bitmapImageData = BitmapImageRGB(8,8);
-    //bitmapImageData.data = std::vector<BitmapImageRGB::PixelData>(64, {1, 2, 3});
-    BlockGrid blockGrid(bitmapImageData); // change param to non-const reference, add both const and non const iterators
-
-    auto temp = blockGrid.begin();
-    auto temp2 = blockGrid.end();
-    for (auto block : blockGrid){
+    std::vector<BlockGrid::Block> decodedBlocks;
+    for (auto const& blockData : inputImage.data){
         
-        // 
+        ColourMappedBlock thisBlock;
+        for (size_t channel = 0 ; channel < 3 ; ++channel/* auto const& channelScanData : blockData.components  */){
+            // To do: extract enoded data from bitstream
+            EntropyChannelOutput entropyEncodedData;
+            entropyEncodedData.temp = blockData.components[channel].temp; // Temporary formulation
+            QuantisedChannelOutput quantisedData = entropyEncoder.decode(entropyEncodedData); // = un-entropy encode (Huff, RLE, zig) 
+            DCTChannelOutput dctData = quantiser.dequantise(quantisedData); // undo quantisation
+            ColourMappedBlock::ChannelBlock colourMappedChannelData = discreteCosineTransformer.inverseTransform(dctData);// undo DCT
+            thisBlock.data[channel] = colourMappedChannelData; //add to block
+        }
+
+        decodedBlocks.emplace_back(colourMapper.unmap(thisBlock)); // undo colour map and add to vector
     }
+    /* 
+    --Convert array of blocks to Bitmap data
+    May be no need to store decoded blocks in vector - consider using iterator as you go along to get row/col number
+    then map data to bitmap array using rol/col number
+    any additional functions can be in blockgrid, may be overlap with dereference operator
+    Blockgrid should be modified first to not use const ref
+    */
 }
 
 /* void jpeg::Decoder::saveBitmapToFile(std::string const& savePath){

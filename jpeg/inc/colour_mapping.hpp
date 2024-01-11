@@ -10,24 +10,28 @@
 namespace jpeg{
     struct ColourMappedBlock{
         // std::array<std::array<uint8_t, 3>, jpeg::BlockGrid::blockSize * jpeg::BlockGrid::blockSize> data;
-        using ChannelBlock = std::array<uint8_t, jpeg::BlockGrid::blockSize * jpeg::BlockGrid::blockSize>;
+        using ChannelBlock = std::array<uint8_t, BlockGrid::blockSize * BlockGrid::blockSize>;
         std::array<ChannelBlock, 3> data;
     };
     class ColourMapper{
     public:
-        ColourMappedBlock map(jpeg::BlockGrid::Block const& inputBlock) const;
+        ColourMappedBlock map(BlockGrid::Block const& inputBlock) const;
+        BlockGrid::Block unmap(ColourMappedBlock const& inputBlock) const;
     protected:
-        virtual ColourMappedBlock applyMapping(jpeg::BlockGrid::Block const& inputBlock) const = 0;
+        virtual ColourMappedBlock applyMapping(BlockGrid::Block const& inputBlock) const = 0;
+        virtual BlockGrid::Block reverseMapping(ColourMappedBlock const& inputBlock) const = 0;
     };
 
     class RGBToRGBMapper : public ColourMapper{
     protected:
-        ColourMappedBlock applyMapping(jpeg::BlockGrid::Block const& inputBlock) const override;
+        ColourMappedBlock applyMapping(BlockGrid::Block const& inputBlock) const override;
+        BlockGrid::Block reverseMapping(ColourMappedBlock const& inputBlock) const override;
     };
 
     class RGBToYCbCrMapper : public ColourMapper{
     protected:
-        ColourMappedBlock applyMapping(jpeg::BlockGrid::Block const& inputBlock) const override;
+        ColourMappedBlock applyMapping(BlockGrid::Block const& inputBlock) const override;
+        BlockGrid::Block reverseMapping(ColourMappedBlock const& inputBlock) const override;
     };
 }
 #endif

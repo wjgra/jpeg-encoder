@@ -29,7 +29,8 @@ namespace jpeg{
 
     class EntropyEncoder{
     public:
-        EntropyChannelOutput encode(QuantisedChannelOutput const& input) const;
+        EntropyChannelOutput encode(QuantisedChannelOutput const& input) const;/* non const if it keeps track of the coeff */
+        QuantisedChannelOutput decode(EntropyChannelOutput const& input) const;
     private:
         QuantisedChannelOutput mapToZigZag(QuantisedChannelOutput const& input) const;
         RunLengthEncodedChannelOutput applyRunLengthEncoding(QuantisedChannelOutput const& input) const;
