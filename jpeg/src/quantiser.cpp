@@ -10,7 +10,7 @@ jpeg::Quantiser::Quantiser(int quality){
         quality = 100;
     }
     // Base IJG quantisation matrix
-    std::array<uint8_t const, BlockGrid::blockElements> baseMatrix =
+    std::array<uint16_t const, BlockGrid::blockElements> baseMatrix =
     {
         16,  11,  10,  16,  24,  40,  51,  61,
         12,  12,  14,  19,  26,  58,  60,  55,

@@ -54,7 +54,7 @@ jpeg::ColourMappedBlock::ChannelBlock jpeg::NaiveDCTTransformer::applyInverseTra
             }
             else{
                 offsetChannelData[x + y * BlockGrid::blockSize] = accumulator;
-            } 
+            }
         }
     }
     ColourMappedBlock::ChannelBlock channelData;

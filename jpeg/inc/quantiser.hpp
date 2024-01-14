@@ -17,7 +17,7 @@ namespace jpeg{
         QuantisedChannelOutput quantise(DCTChannelOutput const& dctInput) const;
         DCTChannelOutput dequantise(QuantisedChannelOutput const& quantisedInput) const;
     private:
-        std::array<uint8_t, BlockGrid::blockElements> quantisationMatrix;
+        std::array<uint16_t, BlockGrid::blockElements> quantisationMatrix;
     };
 }
 #endif

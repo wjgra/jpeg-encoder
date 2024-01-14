@@ -7,6 +7,26 @@ jpeg::InputBlockGrid::BlockIterator::BlockIterator(underlying_pointer p, uint16_
 
 jpeg::InputBlockGrid::BlockIterator::value_type jpeg::InputBlockGrid::BlockIterator::operator*() const{
     Block output{};
+    uint8_t const bottomPadding = gridHeight % blockSize;
+    uint8_t const rowsToCopy = isLastRow() ? (bottomPadding == 0 ? blockSize : bottomPadding): blockSize;
+    uint8_t const rightPadding = gridWidth % blockSize;
+    uint8_t const colsToCopy = isLastCol() ? (rightPadding == 0 ? blockSize : rightPadding): blockSize;
+
+
+    for (int row = 0 ; row < rowsToCopy ; ++row){
+        for (int col = 0 ; col < colsToCopy ; ++col){
+            output.data[row * blockSize + col] = ptr[row * gridWidth + col];
+        }
+        for (int col = colsToCopy - 1 ; col < blockSize ; ++col){
+            output.data[row * blockSize + col] = ptr[row * gridWidth + colsToCopy - 1];
+        }
+    }   
+    for (int row = rowsToCopy - 1 ; row < blockSize ; ++row){
+        std::copy(output.data.begin() + (rowsToCopy - 1) * blockSize, output.data.begin() + rowsToCopy * blockSize, output.data.begin() + rowsToCopy * blockSize);
+    }
+    return output;
+
+   /*  Block output{};
     uint8_t paddingRight = isLastCol() ? blockSize - (gridWidth % blockSize) : 0;
     uint8_t paddingBottom = isLastRow() ? blockSize - (gridHeight % blockSize) : 0;
     // Populate output block
@@ -24,7 +44,7 @@ jpeg::InputBlockGrid::BlockIterator::value_type jpeg::InputBlockGrid::BlockItera
     for (int row = blockSize - paddingBottom; row < blockSize ; ++row){
         std::copy(output.data.begin() + (blockSize - paddingBottom - 1) * blockSize, output.data.begin() + (blockSize - paddingBottom) * blockSize, output.data.begin() + row * blockSize);
     }
-    return output;
+    return output;*/
 }
 
 jpeg::InputBlockGrid::BlockIterator& jpeg::InputBlockGrid::BlockIterator::operator++(){

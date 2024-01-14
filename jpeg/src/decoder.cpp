@@ -18,8 +18,6 @@ jpeg::Decoder::Decoder(JPEGImage inputImage,
             ColourMappedBlock::ChannelBlock colourMappedChannelData = discreteCosineTransformer.inverseTransform(dctData);
             thisBlock.data[channel] = colourMappedChannelData;
         }
-       /*  thisBlock = blockData.components[0].tempColMapBlock;
-        auto h = colourMapper.unmap(thisBlock); */
        outputBlockGrid.processNextBlock(colourMapper.unmap(thisBlock));
     }
     bitmapImageData = outputBlockGrid.getBitmapRGB();
@@ -35,6 +33,6 @@ jpeg::BitmapImageRGB jpeg::Decoder::getBitmapImageData(){
 }
 
 jpeg::JPEGDecoder::JPEGDecoder(JPEGImage const& inputImage, int quality) : 
-    Decoder(inputImage, /*RGBToRGBMapper()*/RGBToYCbCrMapper(), NaiveDCTTransformer(), Quantiser(quality), HuffmanEncoder())
+    Decoder(inputImage, RGBToRGBMapper()/* RGBToYCbCrMapper() */, NaiveDCTTransformer(), Quantiser(quality), HuffmanEncoder())
 {
 }
