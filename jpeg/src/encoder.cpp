@@ -74,6 +74,6 @@ jpeg::JPEGImage jpeg::Encoder::getJPEGImageData(){
 }
 
 jpeg::JPEGEncoder::JPEGEncoder(BitmapImageRGB const& inputImage, int quality) : 
-    Encoder(inputImage, RGBToRGBMapper()/* RGBToYCbCrMapper() */, NaiveDCTTransformer(), Quantiser(quality), HuffmanEncoder())
+    Encoder(inputImage, RGBToRGBMapper()/* RGBToYCbCrMapper() */, NaiveCosineTransformer(), Quantiser(quality), HuffmanEncoder())
 {
 }

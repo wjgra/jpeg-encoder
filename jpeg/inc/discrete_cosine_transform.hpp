@@ -3,6 +3,7 @@
 
 #include <array>
 #include <cmath>
+#include <numbers>
 
 #include "..\inc\colour_mapping.hpp"
 #include "..\inc\block_grid.hpp" // Issue: separate dependencies of block and block grid
@@ -23,13 +24,17 @@ namespace jpeg{
     };
 
     /* Very slowly calculates the DCT/IDCT by direct calculation (in the naive manner) */
-    class NaiveDCTTransformer : public DiscreteCosineTransformer{
+    class NaiveCosineTransformer : public DiscreteCosineTransformer{
     protected:
         DCTChannelOutput applyTransform(ColourMappedBlock::ChannelBlock const& inputChannel) const override;
         ColourMappedBlock::ChannelBlock applyInverseTransform(DCTChannelOutput  const& inputChannel) const override;
     };
 
-    /* Add faster transformer */
+    class FastCosineTransformer : public DiscreteCosineTransformer{
+    protected:
+        DCTChannelOutput applyTransform(ColourMappedBlock::ChannelBlock const& inputChannel) const override;
+        ColourMappedBlock::ChannelBlock applyInverseTransform(DCTChannelOutput  const& inputChannel) const override;
+    };
 
 }
 #endif

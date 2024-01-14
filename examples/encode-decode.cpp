@@ -1,3 +1,7 @@
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+
 #define SDL_MAIN_HANDLED
 #include <SDL_main.h>
 
@@ -9,29 +13,34 @@
 #include "..\jpeg\inc\encoder.hpp"
 #include "..\jpeg\inc\decoder.hpp"
 
-void mainLoop(Window& window){
-    while (true){
-        SDL_Event event;
-        while (SDL_PollEvent(&event)){
-            switch(event.type){
-                case SDL_QUIT:
-                    return;
-                    break;
-                case SDL_KEYDOWN:
-                    switch(event.key.keysym.scancode){
-                        case SDL_SCANCODE_F11:
-                            window.toggleFullScreen();
-                            break;
-                        default:
-                            break;
-                    }
-                    break;
-                default:
-                    break;
-            }
+bool mainLoop(Window& window){
+    SDL_Event event;
+    while (SDL_PollEvent(&event)){
+        switch(event.type){
+            case SDL_QUIT:
+                return false;
+                break;
+            case SDL_KEYDOWN:
+                switch(event.key.keysym.scancode){
+                    case SDL_SCANCODE_F11:
+                        window.toggleFullScreen();
+                        break;
+                    default:
+                        break;
+                }
+                break;
+            default:
+                break;
         }
     }
+    return true;
 }
+
+#ifdef __EMSCRIPTEN__
+void mainLoopCallback(void* window){
+    mainLoop(*static_cast<Window*>(window));
+}
+#endif
 
 int main(int argc, char *argv[]){
     std::vector<std::string> arguments(argv + 1, argv + argc);
@@ -119,6 +128,12 @@ int main(int argc, char *argv[]){
     SDL_RenderCopy(renderer, outputBmpTexture, nullptr, &rightHalf);
     SDL_RenderPresent(renderer);
 
-    mainLoop(window);
+    #ifndef __EMSCRIPTEN__
+    while(mainLoop(window)){}
+    #else
+    emscripten_set_main_loop_arg(&mainLoopCallback, &window, 0, 1);
+    #endif
+    
+    SDL_Quit();
     return EXIT_SUCCESS;
 }

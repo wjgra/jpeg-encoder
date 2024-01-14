@@ -7,22 +7,22 @@ jpeg::InputBlockGrid::BlockIterator::BlockIterator(underlying_pointer p, uint16_
 
 jpeg::InputBlockGrid::BlockIterator::value_type jpeg::InputBlockGrid::BlockIterator::operator*() const{
     Block output{};
-    uint8_t const bottomPadding = gridHeight % blockSize;
-    uint8_t const rowsToCopy = isLastRow() ? (bottomPadding == 0 ? blockSize : bottomPadding): blockSize;
-    uint8_t const rightPadding = gridWidth % blockSize;
-    uint8_t const colsToCopy = isLastCol() ? (rightPadding == 0 ? blockSize : rightPadding): blockSize;
+    uint8_t const bottomRemainder = gridHeight % blockSize;
+    uint8_t const rowsToOutput = isLastRow() ? (bottomRemainder == 0 ? blockSize : bottomRemainder): blockSize;
+    uint8_t const rightRemainder = gridWidth % blockSize;
+    uint8_t const colsToOutput = isLastCol() ? (rightRemainder == 0 ? blockSize : rightRemainder): blockSize;
 
 
-    for (int row = 0 ; row < rowsToCopy ; ++row){
-        for (int col = 0 ; col < colsToCopy ; ++col){
+    for (int row = 0 ; row < rowsToOutput ; ++row){
+        for (int col = 0 ; col < colsToOutput ; ++col){
             output.data[row * blockSize + col] = ptr[row * gridWidth + col];
         }
-        for (int col = colsToCopy - 1 ; col < blockSize ; ++col){
-            output.data[row * blockSize + col] = ptr[row * gridWidth + colsToCopy - 1];
+        for (int col = colsToOutput - 1 ; col < blockSize ; ++col){
+            output.data[row * blockSize + col] = ptr[row * gridWidth + colsToOutput - 1];
         }
     }   
-    for (int row = rowsToCopy - 1 ; row < blockSize ; ++row){
-        std::copy(output.data.begin() + (rowsToCopy - 1) * blockSize, output.data.begin() + rowsToCopy * blockSize, output.data.begin() + rowsToCopy * blockSize);
+    for (int row = rowsToOutput ; row < blockSize ; ++row){
+        std::copy(output.data.begin() + (rowsToOutput - 1) * blockSize, output.data.begin() + rowsToOutput * blockSize, output.data.begin() + row * blockSize);
     }
     return output;
 
@@ -102,18 +102,18 @@ jpeg::InputBlockGrid::BlockIterator jpeg::InputBlockGrid::end() const{
 }
 
 jpeg::OutputBlockGrid::OutputBlockGrid(uint16_t width, uint16_t height) : 
-    output{width, height},  blockGrid{output}, currentBlock{blockGrid.begin()}, w{width}, h{height}{}
+    output{width, height},  blockGrid{output}, currentBlock{blockGrid.begin()}, gridWidth{width}, gridHeight{height}{}
 
 void jpeg::OutputBlockGrid::processNextBlock(BlockGrid::Block const& inputBlock){
-    uint8_t const bottomPadding = h % blockSize;
-    uint8_t const rowsToCopy = currentBlock.isLastRow() ? (bottomPadding == 0 ? blockSize : bottomPadding): blockSize;
-    uint8_t const rightPadding = w % blockSize;
-    uint8_t const colsToCopy = currentBlock.isLastCol() ? (rightPadding == 0 ? blockSize : rightPadding): blockSize;
+    uint8_t const bottomRemainder = gridHeight % blockSize;
+    uint8_t const rowsToCopy = currentBlock.isLastRow() ? (bottomRemainder == 0 ? blockSize : bottomRemainder): blockSize;
+    uint8_t const rightRemainder = gridWidth % blockSize;
+    uint8_t const colsToCopy = currentBlock.isLastCol() ? (rightRemainder == 0 ? blockSize : rightRemainder): blockSize;
 
     for (size_t i = 0 ; i < rowsToCopy ; ++i){
                 std::copy(inputBlock.data.data() + i * blockSize ,
                           inputBlock.data.data() + i * blockSize + colsToCopy, 
-                          getBlockPtr() + i * w);
+                          getBlockPtr() + i * gridWidth);
     }
     ++currentBlock;
 }

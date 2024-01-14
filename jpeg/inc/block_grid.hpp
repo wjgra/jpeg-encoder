@@ -60,7 +60,7 @@ class InputBlockGrid : public BlockGrid{
         BitmapImageRGB output;
         InputBlockGrid blockGrid;
         InputBlockGrid::BlockIterator currentBlock;
-        uint16_t const w, h;
+        uint16_t const gridWidth, gridHeight;
     public:
         OutputBlockGrid() = delete;
         OutputBlockGrid(uint16_t width, uint16_t height);
