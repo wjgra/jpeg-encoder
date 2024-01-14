@@ -1,6 +1,9 @@
 #define SDL_MAIN_HANDLED
 #include <SDL_main.h>
+
 #include <chrono>
+#include <vector>
+#include <string>
 
 #include "..\common\window.hpp"
 #include "..\jpeg\inc\encoder.hpp"
@@ -31,17 +34,40 @@ void mainLoop(Window& window){
 }
 
 int main(int argc, char *argv[]){
-    int qualityValue = 50;
-    if (argc > 1){
-        qualityValue = std::stoi(std::string(argv[1]));
+    std::vector<std::string> arguments(argv + 1, argv + argc);
+    int qualityValue = 80;
+    int scale = 1;
+    std::string inputBmpImagePath;
+    for(auto arg = arguments.begin() ; arg != arguments.end() ; ++arg){
+        if (strcmp(arg->c_str(), "-q") == 0){
+            if (arg != arguments.end() - 1){
+                ++arg;
+                qualityValue = std::stoi(std::string(*arg));
+            }
+        }
+        else if (strcmp(arg->c_str(), "-i") == 0){
+            if (arg != arguments.end() - 1){
+                ++arg;
+                inputBmpImagePath = *arg;
+            }
+        }
+        else if (strcmp(arg->c_str(), "-s") == 0){
+            if (arg != arguments.end() - 1){
+                ++arg;
+                scale = std::stoi(std::string(*arg));
+            }
+        }
     }
+
     // Load test image
-    jpeg::BitmapImageRGB inputBmp("img\\leclerc.bmp");
+    
+    jpeg::BitmapImageRGB inputBmp(inputBmpImagePath);
+    
     if (inputBmp.width == 0 || inputBmp.height == 0){
         return EXIT_FAILURE;
     }
 
-    Window window(2 * inputBmp.width, inputBmp.height, "BMP-to-JPEG");
+    Window window(2 * inputBmp.width * scale, inputBmp.height * scale, "BMP-to-JPEG");
     SDL_Init(SDL_INIT_VIDEO);
     SDL_Renderer* renderer = SDL_CreateRenderer(window.getWindow(), -1, 0);
     if (!window.getWindow() || !renderer) return EXIT_FAILURE;
@@ -50,7 +76,7 @@ int main(int argc, char *argv[]){
     SDL_Texture* inputBmpTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB24, SDL_TEXTUREACCESS_STATIC, inputBmp.width, inputBmp.height);
     SDL_UpdateTexture(inputBmpTexture, nullptr, inputBmp.data.data(), inputBmp.width * 3);
     SDL_RenderClear(renderer);
-    SDL_Rect leftHalf = {.x = 0, .y = 0,  .w = inputBmp.width, .h = inputBmp.height};
+    SDL_Rect leftHalf = {.x = 0, .y = 0,  .w = inputBmp.width * scale, .h = inputBmp.height * scale};
     SDL_RenderCopy(renderer, inputBmpTexture, nullptr, &leftHalf);
     SDL_RenderPresent(renderer);
 
@@ -89,7 +115,7 @@ int main(int argc, char *argv[]){
     // temp display colour mapped data
     SDL_Texture* outputBmpTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB24, SDL_TEXTUREACCESS_STATIC, outputBmp.width, outputBmp.height);
     SDL_UpdateTexture(outputBmpTexture, nullptr, outputBmp.data.data(), outputBmp.width * 3);
-    SDL_Rect rightHalf = {.x = inputBmp.width, .y = 0,  .w = outputBmp.width, .h = outputBmp.height};
+    SDL_Rect rightHalf = {.x = inputBmp.width * scale, .y = 0,  .w = outputBmp.width * scale, .h = outputBmp.height * scale};
     SDL_RenderCopy(renderer, outputBmpTexture, nullptr, &rightHalf);
     SDL_RenderPresent(renderer);
 

@@ -8,7 +8,7 @@ jpeg::Encoder::Encoder(BitmapImageRGB const& inputImage,
                        /* OPTIONAL: sequential/progressive option; downsampling option */
 {
     jpegImageData.data.clear();
-    BlockGrid blockGrid(inputImage);
+    InputBlockGrid blockGrid(inputImage);
     std::array<int16_t, 3> lastDCValues = {0,0,0};
     for (auto const& block : blockGrid){
         ColourMappedBlock colourMappedBlock = colourMapper.map(block);
@@ -21,13 +21,15 @@ jpeg::Encoder::Encoder(BitmapImageRGB const& inputImage,
         for (size_t channel = 0 ; channel < 3 ; ++channel){
             DCTChannelOutput dctData = discreteCosineTransformer.transform(colourMappedBlock.data[channel]);
             QuantisedChannelOutput quantisedOutput = quantiser.quantise(dctData);
-
             EntropyChannelOutput entropyCodedOutput = entropyEncoder.encode(quantisedOutput, lastDCValues[channel]);
-            // **Temporary** DC diff should be set by encoder...
-            /* entropyCodedOutput.temp.dcDifference = quantisedOutput.data[0] - lastDCValues[channel];
-            lastDCValues[channel] = quantisedOutput.data[0]; */
-            jpegImageData.data.back().components[channel].temp = entropyCodedOutput.temp;
+
+            jpegImageData.data.back().components[channel].tempRLE = entropyCodedOutput.temp;
             /* To do: temp (vector) should be replaced by bitstream*/
+
+            // temp - for use in short-circuiting the decoder
+            jpegImageData.data.back().components[channel].tempColMapBlock = colourMappedBlock;
+            jpegImageData.data.back().components[channel].tempDCT = dctData;
+            jpegImageData.data.back().components[channel].tempQuantised = quantisedOutput;
         }
 
         // Push to stream

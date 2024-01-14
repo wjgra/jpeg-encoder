@@ -6,29 +6,23 @@ jpeg::Decoder::Decoder(JPEGImage inputImage,
                 Quantiser const& quantiser,
                 EntropyEncoder const& entropyEncoder) : bitmapImageData(inputImage.width, inputImage.height)   
 {
-    std::vector<BlockGrid::Block> decodedBlocks;
+    OutputBlockGrid outputBlockGrid(inputImage.width, inputImage.height);
     std::array<int16_t, 3> lastDCValues = {0,0,0};
     for (auto const& blockData : inputImage.data){
         ColourMappedBlock thisBlock;
-        for (size_t channel = 0 ; channel < 3 ; ++channel/* auto const& channelScanData : blockData.components  */){
-            // To do: extract enoded data from bitstream
-            EntropyChannelOutput entropyEncodedData;
-            entropyEncodedData.temp = blockData.components[channel].temp; // Temporary formulation
-            QuantisedChannelOutput quantisedData = entropyEncoder.decode(entropyEncodedData, lastDCValues[channel]); // = un-entropy encode (Huff, RLE, zig) 
-            DCTChannelOutput dctData = quantiser.dequantise(quantisedData); // undo quantisation
-            ColourMappedBlock::ChannelBlock colourMappedChannelData = discreteCosineTransformer.inverseTransform(dctData);// undo DCT
-            thisBlock.data[channel] = colourMappedChannelData; //add to block
+        for (size_t channel = 0 ; channel < 3 ; ++channel){
+            EntropyChannelOutput entropyEncodedData; // To do: extract enttopy encoded data from bitstream
+            entropyEncodedData.temp = blockData.components[channel].tempRLE; // Temporary means of recovering entropy encoded data
+            QuantisedChannelOutput quantisedData = entropyEncoder.decode(entropyEncodedData, lastDCValues[channel]); // Currently no Huffman encoding/decoding
+            DCTChannelOutput dctData = quantiser.dequantise(quantisedData);
+            ColourMappedBlock::ChannelBlock colourMappedChannelData = discreteCosineTransformer.inverseTransform(dctData);
+            thisBlock.data[channel] = colourMappedChannelData;
         }
-
-        decodedBlocks.emplace_back(colourMapper.unmap(thisBlock)); // undo colour map and add to vector
+       /*  thisBlock = blockData.components[0].tempColMapBlock;
+        auto h = colourMapper.unmap(thisBlock); */
+       outputBlockGrid.processNextBlock(colourMapper.unmap(thisBlock));
     }
-    /* 
-    --Convert array of blocks to Bitmap data
-    May be no need to store decoded blocks in vector - consider using iterator as you go along to get row/col number
-    then map data to bitmap array using rol/col number
-    any additional functions can be in blockgrid, may be overlap with dereference operator
-    Blockgrid should be modified first to not use const ref
-    */
+    bitmapImageData = outputBlockGrid.getBitmapRGB();
 }
 
 /* void jpeg::Decoder::saveBitmapToFile(std::string const& savePath){
@@ -41,6 +35,6 @@ jpeg::BitmapImageRGB jpeg::Decoder::getBitmapImageData(){
 }
 
 jpeg::JPEGDecoder::JPEGDecoder(JPEGImage const& inputImage, int quality) : 
-    Decoder(inputImage, RGBToYCbCrMapper(), NaiveDCTTransformer(), Quantiser(quality), HuffmanEncoder())
+    Decoder(inputImage, /*RGBToRGBMapper()*/RGBToYCbCrMapper(), NaiveDCTTransformer(), Quantiser(quality), HuffmanEncoder())
 {
 }

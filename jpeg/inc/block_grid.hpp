@@ -2,25 +2,31 @@
 #define _JPEG_BLOCK_GRID_HPP_
 
 #include <cstdint>
+#include <cstring>
 #include <array>
 #include <iterator>
 
 #include "..\inc\bitmap_image.hpp"
 
 namespace jpeg{
+
 class BlockGrid{
+protected:
+    BlockGrid() = default; // Prevent instantiation
+public:
+    uint8_t const static blockSize = 8; // Issue: include support for downsampling (e.g. via 16x16 blocks)
+    uint8_t const static blockElements = blockSize * blockSize;
+    struct Block{
+        std::array<BitmapImageRGB::PixelData, blockElements> data;
+    };
+};
+class InputBlockGrid : public BlockGrid{
     public:
-        BlockGrid(BitmapImageRGB const& input);
-        uint8_t const static blockSize = 8; // Issue: include support for downsampling (e.g. via 16x16 blocks)
-
-        struct Block{
-            std::array<BitmapImageRGB::PixelData, blockSize * blockSize> data;
-        };
-
+        InputBlockGrid(BitmapImageRGB const& input);
         // Input iterator for accessing image blocks
         struct BlockIterator{
             using difference_type = std::ptrdiff_t;
-            using value_type = Block;
+            using value_type = BlockGrid::Block;
             using underlying_type = BitmapImageRGB::PixelData;
             using underlying_pointer = underlying_type const *;
             using iterator_category = std::input_iterator_tag;
@@ -34,19 +40,34 @@ class BlockGrid{
             value_type operator*() const;
             BlockIterator& operator++();
             BlockIterator operator++(int);
-            friend bool operator==(BlockIterator const& a, BlockIterator const& b){return a.ptr == b.ptr;};
-            friend bool operator!=(BlockIterator const& a, BlockIterator const& b){return a.ptr != b.ptr;};
-        private:
+            friend bool operator==(BlockIterator const& a, BlockIterator const& b){return a.ptr == b.ptr;}
+            friend bool operator!=(BlockIterator const& a, BlockIterator const& b){return a.ptr != b.ptr;}
             bool isLastCol() const;
             bool isLastRow() const;
+            underlying_pointer getDataPtr() const;
         };
         static_assert(std::input_iterator<BlockIterator>);
         
     public:
-        BlockIterator begin();
-        BlockIterator end();
+        BlockIterator begin() const;
+        BlockIterator end() const;
     private:
         BitmapImageRGB const& imageData;
     };
-};
+
+    class OutputBlockGrid : public BlockGrid{
+    private:
+        BitmapImageRGB output;
+        InputBlockGrid blockGrid;
+        InputBlockGrid::BlockIterator currentBlock;
+        uint16_t const w, h;
+    public:
+        OutputBlockGrid() = delete;
+        OutputBlockGrid(uint16_t width, uint16_t height);
+        void processNextBlock(BlockGrid::Block const& inputBlock);
+        BitmapImageRGB getBitmapRGB() const;
+    private:
+        BitmapImageRGB::PixelData* getBlockPtr();
+    };
+}
 #endif

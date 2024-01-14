@@ -9,7 +9,7 @@
 namespace jpeg{
 
     struct DCTChannelOutput{
-            std::array<float, BlockGrid::blockSize * BlockGrid::blockSize> data;
+            std::array<float, BlockGrid::blockElements> data;
             float getDCCoefficient(){return data.front();}
     };
 

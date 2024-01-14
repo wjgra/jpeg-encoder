@@ -9,8 +9,8 @@
 
 namespace jpeg{
     struct ColourMappedBlock{
-        // std::array<std::array<uint8_t, 3>, jpeg::BlockGrid::blockSize * jpeg::BlockGrid::blockSize> data;
-        using ChannelBlock = std::array<uint8_t, BlockGrid::blockSize * BlockGrid::blockSize>;
+        // std::array<std::array<uint8_t, 3>, BlockGrid::blockElements> data;
+        using ChannelBlock = std::array<uint8_t, BlockGrid::blockElements>;
         std::array<ChannelBlock, 3> data;
     };
     class ColourMapper{

@@ -77,7 +77,7 @@ jpeg::QuantisedChannelOutput jpeg::EntropyEncoder::mapFromGridToZigZag(Quantised
 jpeg::QuantisedChannelOutput jpeg::EntropyEncoder::mapFromZigZagToGrid(QuantisedChannelOutput const& input) const{
     // There are presumably more elegant ways of inverting the mapping...
     QuantisedChannelOutput indices;
-    for (size_t i = 0 ; i < BlockGrid::blockSize * BlockGrid::blockSize ; ++i){
+    for (size_t i = 0 ; i < BlockGrid::blockElements ; ++i){
         indices.data[i] = i;
     }
     indices = mapFromGridToZigZag(indices);
@@ -93,7 +93,7 @@ jpeg::RunLengthEncodedChannelOutput jpeg::EntropyEncoder::applyRunLengthEncoding
     RunLengthEncodedChannelOutput output;
     uint8_t runLength = 1;
     int16_t coefficientOfCurrentRun = input.data[1];
-    for (size_t i = 2 ; i < BlockGrid::blockSize * BlockGrid::blockSize; ++i){
+    for (size_t i = 2 ; i < BlockGrid::blockElements; ++i){
         if (input.data[i] == coefficientOfCurrentRun){
             ++runLength;
         }
@@ -103,9 +103,7 @@ jpeg::RunLengthEncodedChannelOutput jpeg::EntropyEncoder::applyRunLengthEncoding
             runLength = 1;
         }
     }
-    if (runLength == 1){
-        output.acCoefficients.emplace_back(runLength, coefficientOfCurrentRun);
-    }
+    output.acCoefficients.emplace_back(runLength, coefficientOfCurrentRun);
     output.dcDifference = input.data[0] - lastDCValue;
     lastDCValue = input.data[0];
     return output;

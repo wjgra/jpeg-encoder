@@ -15,7 +15,11 @@ namespace jpeg{
         uint16_t width, height;
         struct BlockData{
             struct ScanData{
-                RunLengthEncodedChannelOutput temp; // one block-channel
+                // Temp data to allow short-circuit testing
+                ColourMappedBlock tempColMapBlock;
+                DCTChannelOutput tempDCT;
+                QuantisedChannelOutput tempQuantised;
+                RunLengthEncodedChannelOutput tempRLE; // one block-channel
             };
             std::array<ScanData, 3> components;
         };

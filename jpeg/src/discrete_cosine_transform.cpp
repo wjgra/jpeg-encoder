@@ -9,8 +9,8 @@ jpeg::ColourMappedBlock::ChannelBlock jpeg::DiscreteCosineTransformer::inverseTr
 }
 
 jpeg::DCTChannelOutput jpeg::NaiveDCTTransformer::applyTransform(ColourMappedBlock::ChannelBlock const& inputChannel) const{
-    ColourMappedBlock::ChannelBlock offsetChannelData;
-    for (size_t i = 0 ; i < offsetChannelData.size() ; ++i){
+    std::array<int8_t, BlockGrid::blockElements> offsetChannelData;
+    for (size_t i = 0 ; i < BlockGrid::blockElements ; ++i){
         offsetChannelData[i] = inputChannel[i] - 128;
     }
     DCTChannelOutput output;
@@ -32,7 +32,7 @@ jpeg::DCTChannelOutput jpeg::NaiveDCTTransformer::applyTransform(ColourMappedBlo
 }
 
 jpeg::ColourMappedBlock::ChannelBlock jpeg::NaiveDCTTransformer::applyInverseTransform(DCTChannelOutput  const& inputChannel) const{
-    ColourMappedBlock::ChannelBlock offsetChannelData;
+    std::array<int8_t, BlockGrid::blockElements> offsetChannelData;
     for (size_t x = 0 ; x < BlockGrid::blockSize ; ++x){
         for (size_t y = 0 ; y < BlockGrid::blockSize ; ++y){
             float accumulator = 0;
@@ -44,11 +44,21 @@ jpeg::ColourMappedBlock::ChannelBlock jpeg::NaiveDCTTransformer::applyInverseTra
                         * std::cos((2.0f * y + 1) * v * std::numbers::pi_v<float> / 16.0f);
                 }
             }
-            offsetChannelData[x + y * BlockGrid::blockSize] = accumulator;
+            int8_t const maxInt{127};
+            int8_t const minInt{-128};
+            if (accumulator < minInt){
+                offsetChannelData[x + y * BlockGrid::blockSize] = minInt;
+            }
+            else if (accumulator > maxInt){
+                offsetChannelData[x + y * BlockGrid::blockSize] = maxInt;
+            }
+            else{
+                offsetChannelData[x + y * BlockGrid::blockSize] = accumulator;
+            } 
         }
     }
     ColourMappedBlock::ChannelBlock channelData;
-    for (size_t i = 0 ; i < channelData.size() ; ++i){
+    for (size_t i = 0 ; i < BlockGrid::blockElements ; ++i){
         channelData[i] = offsetChannelData[i] + 128;
     }
     return channelData;

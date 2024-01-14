@@ -23,7 +23,7 @@ jpeg::ColourMappedBlock jpeg::RGBToRGBMapper::applyMapping(jpeg::BlockGrid::Bloc
 jpeg::BlockGrid::Block jpeg::RGBToRGBMapper::reverseMapping(ColourMappedBlock const& inputBlock) const{
     BlockGrid::Block output;
     // Passthrough mapping
-    for (size_t i = 0 ; i < inputBlock.data.size() ; ++i){
+    for (size_t i = 0 ; i < inputBlock.data[0].size() ; ++i){
         output.data[i].r = inputBlock.data[0][i];
         output.data[i].g = inputBlock.data[1][i];
         output.data[i].b = inputBlock.data[2][i];
@@ -68,7 +68,7 @@ jpeg::BlockGrid::Block jpeg::RGBToYCbCrMapper::reverseMapping(ColourMappedBlock 
     auto B = [](uint8_t Y, uint8_t Cb/* , uint8_t Cr */){
         return uint8_t(Y + 1.772 * (Cb - 128));
     };
-    for (size_t i = 0 ; i < inputBlock.data.size() ; ++i){
+    for (size_t i = 0 ; i < inputBlock.data[0].size() ; ++i){
         output.data[i].r = R(inputBlock.data[0][i]/* ,inputBlock.data[1][i] */,inputBlock.data[2][i]);
         output.data[i].g = G(inputBlock.data[0][i],inputBlock.data[1][i],inputBlock.data[2][i]);
         output.data[i].b = B(inputBlock.data[0][i],inputBlock.data[1][i]/* ,inputBlock.data[2][i] */);

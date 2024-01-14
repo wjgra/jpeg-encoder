@@ -8,7 +8,7 @@
 namespace jpeg{
 
     struct QuantisedChannelOutput{
-        std::array<int16_t, BlockGrid::blockSize * BlockGrid::blockSize> data;
+        std::array<int16_t, BlockGrid::blockElements> data;
     };
 
     class Quantiser{
@@ -17,7 +17,7 @@ namespace jpeg{
         QuantisedChannelOutput quantise(DCTChannelOutput const& dctInput) const;
         DCTChannelOutput dequantise(QuantisedChannelOutput const& quantisedInput) const;
     private:
-        std::array<uint8_t, BlockGrid::blockSize * BlockGrid::blockSize> quantisationMatrix;
+        std::array<uint8_t, BlockGrid::blockElements> quantisationMatrix;
     };
 }
 #endif

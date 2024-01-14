@@ -1,11 +1,11 @@
 #include "..\inc\block_grid.hpp"
 
-jpeg::BlockGrid::BlockGrid(BitmapImageRGB const& input) : imageData{input}{};
+jpeg::InputBlockGrid::InputBlockGrid(BitmapImageRGB const& input) : imageData{input}{};
 
-jpeg::BlockGrid::BlockIterator::BlockIterator(underlying_pointer p, uint16_t w, uint16_t h) : 
+jpeg::InputBlockGrid::BlockIterator::BlockIterator(underlying_pointer p, uint16_t w, uint16_t h) : 
     ptr{p}, blockRowPos{0}, blockColPos{0}, gridWidth{w}, gridHeight{h}{}
 
-jpeg::BlockGrid::BlockIterator::value_type jpeg::BlockGrid::BlockIterator::operator*() const{
+jpeg::InputBlockGrid::BlockIterator::value_type jpeg::InputBlockGrid::BlockIterator::operator*() const{
     Block output{};
     uint8_t paddingRight = isLastCol() ? blockSize - (gridWidth % blockSize) : 0;
     uint8_t paddingBottom = isLastRow() ? blockSize - (gridHeight % blockSize) : 0;
@@ -27,7 +27,7 @@ jpeg::BlockGrid::BlockIterator::value_type jpeg::BlockGrid::BlockIterator::opera
     return output;
 }
 
-jpeg::BlockGrid::BlockIterator& jpeg::BlockGrid::BlockIterator::operator++(){
+jpeg::InputBlockGrid::BlockIterator& jpeg::InputBlockGrid::BlockIterator::operator++(){
     if (!isLastCol()){
         // Advance to next block in current block-row
         ptr += blockSize;
@@ -57,22 +57,54 @@ jpeg::BlockGrid::BlockIterator& jpeg::BlockGrid::BlockIterator::operator++(){
     return *this;
 }
 
-jpeg::BlockGrid::BlockIterator jpeg::BlockGrid::BlockIterator::operator++(int){
+jpeg::InputBlockGrid::BlockIterator jpeg::InputBlockGrid::BlockIterator::operator++(int){
     auto temp = *this; ++(*this); return temp;
 }
 
-bool jpeg::BlockGrid::BlockIterator::isLastCol() const{
+bool jpeg::InputBlockGrid::BlockIterator::isLastCol() const{
     return ((blockColPos + 1) == (gridWidth / blockSize + ((gridWidth % blockSize) != 0)));
 }
 
-bool jpeg::BlockGrid::BlockIterator::isLastRow() const{
+bool jpeg::InputBlockGrid::BlockIterator::isLastRow() const{
     return ((blockRowPos + 1) == (gridHeight / blockSize + ((gridHeight % blockSize) != 0)));
 }
 
-jpeg::BlockGrid::BlockIterator jpeg::BlockGrid::begin(){
+jpeg::InputBlockGrid::BlockIterator::underlying_pointer jpeg::InputBlockGrid::BlockIterator::getDataPtr() const{
+    return ptr;
+}
+
+jpeg::InputBlockGrid::BlockIterator jpeg::InputBlockGrid::begin() const{
     return BlockIterator(imageData.data.data(), imageData.width, imageData.height);
 }
 
-jpeg::BlockGrid::BlockIterator jpeg::BlockGrid::end(){
+jpeg::InputBlockGrid::BlockIterator jpeg::InputBlockGrid::end() const{
     return BlockIterator(imageData.data.data() + imageData.width * imageData.height, imageData.width, imageData.height);
+}
+
+jpeg::OutputBlockGrid::OutputBlockGrid(uint16_t width, uint16_t height) : 
+    output{width, height},  blockGrid{output}, currentBlock{blockGrid.begin()}, w{width}, h{height}{}
+
+void jpeg::OutputBlockGrid::processNextBlock(BlockGrid::Block const& inputBlock){
+    uint8_t const bottomPadding = h % blockSize;
+    uint8_t const rowsToCopy = currentBlock.isLastRow() ? (bottomPadding == 0 ? blockSize : bottomPadding): blockSize;
+    uint8_t const rightPadding = w % blockSize;
+    uint8_t const colsToCopy = currentBlock.isLastCol() ? (rightPadding == 0 ? blockSize : rightPadding): blockSize;
+
+    for (size_t i = 0 ; i < rowsToCopy ; ++i){
+                std::copy(inputBlock.data.data() + i * blockSize ,
+                          inputBlock.data.data() + i * blockSize + colsToCopy, 
+                          getBlockPtr() + i * w);
+    }
+    ++currentBlock;
+}
+
+jpeg::BitmapImageRGB jpeg::OutputBlockGrid::getBitmapRGB() const{
+    if (currentBlock != blockGrid.end()){
+        std::cerr << "Warning: not all JPEG blocks processed. Decoded Bitmap may be incomplete!\n";
+    }
+    return output;
+}
+
+jpeg::BitmapImageRGB::PixelData* jpeg::OutputBlockGrid::getBlockPtr(){
+    return output.data.data() + (currentBlock.getDataPtr() - blockGrid.begin().getDataPtr());
 }
