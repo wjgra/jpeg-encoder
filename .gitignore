@@ -39,3 +39,7 @@
 *.js
 *.wasm
 *.data
+
+# Input files
+img/*
+img-cc/*
