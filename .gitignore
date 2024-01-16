@@ -43,3 +43,8 @@
 # Input files
 img/*
 img-cc/*
+*.bmp
+
+# Output files
+out/*
+*.jpg
