@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <vector>
 #include <string>
+#include <filesystem>
 #include <SDL.h> // Issue: SDL dependency is used for reading BMPs
 
 namespace jpeg{
@@ -13,12 +14,17 @@ namespace jpeg{
     struct BitmapImageRGB{
         BitmapImageRGB();
         BitmapImageRGB(uint16_t w, uint16_t h);
+        BitmapImageRGB(SDL_Surface* image);
         BitmapImageRGB(std::string const& loadPath);
+        BitmapImageRGB(uint8_t const* buffer, int len);
         struct PixelData{
             uint8_t r, g, b;   
         };
         uint16_t width, height;
+        std::uintmax_t fileSize;
         std::vector<PixelData> data;
+    private:
+        bool init(SDL_Surface* image);
     };
 }
 

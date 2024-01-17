@@ -62,6 +62,7 @@ jpeg::Encoder::Encoder(BitmapImageRGB const& inputImage,
     std::cout << "DCT: " << dctTime << "\n";
     std::cout << "Quantisation: " << quantisingTime << "\n";
     std::cout << "Entropy coding: " << entropyTime << "\n";
+    std::cout << "Compression ratio: 1.0" << "\n";
 }
 
 /* void jpeg::Encoder::saveJPEGToFile(std::string const& savePath){

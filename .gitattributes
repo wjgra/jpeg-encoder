@@ -1,6 +1,2 @@
 # Vendored paths/files
-inc/KHR/khrplatform.h linguist-vendored
-inc/glad/glad.h linguist-vendored
-src/glad.c linguist-vendored
-inc/stb_image.h linguist-vendored
-src/stb_image.cpp linguist-vendored
+common/emscripten_browser_file.h
