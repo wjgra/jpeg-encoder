@@ -40,15 +40,19 @@ void mainLoopCallback(void* window){
     mainLoop(*static_cast<Window*>(window));
 }
 
-int encodeDecodeImage(jpeg::BitmapImageRGB const& inputBmp, int quality = 80){   
+Window window(8, 8, "BMP-to-JPEG");
+
+void encodeDecodeImage(jpeg::BitmapImageRGB const& inputBmp, int quality = 80){   
     if (inputBmp.width == 0 || inputBmp.height == 0){
-        return EXIT_FAILURE;
+        return;
     }
 
-    Window window(2 * inputBmp.width, inputBmp.height, "BMP-to-JPEG");
-    SDL_Init(SDL_INIT_VIDEO);
+    // Window window(2 * inputBmp.width, inputBmp.height, "BMP-to-JPEG");
+    window.resize(2 * inputBmp.width, inputBmp.height);
+    window.setTitle("BMP-to-JPEG");
+    
     SDL_Renderer* renderer = SDL_CreateRenderer(window.getWindow(), -1, 0);
-    if (!window.getWindow() || !renderer) return EXIT_FAILURE;
+    if (!window.getWindow() || !renderer) return;
     
     // Display pre-encoding image in left half of window
     SDL_Texture* inputBmpTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB24, SDL_TEXTUREACCESS_STATIC, inputBmp.width, inputBmp.height);
@@ -96,12 +100,8 @@ int encodeDecodeImage(jpeg::BitmapImageRGB const& inputBmp, int quality = 80){
 
     std::cout << "BMP size: " << inputBmp.fileSize << "B | JPEG size: " << "XX" << "B | Compression ratio: " << "1.0\n";
     
-    SDL_DestroyRenderer(renderer);
-    /* enc.~Encoder();
-    dec.~Decoder(); */
-    emscripten_set_main_loop_arg(&mainLoopCallback, &window, 0, true);
-    SDL_Quit();
-    return EXIT_SUCCESS;
+    SDL_DestroyRenderer(renderer);    
+    return;
 }
 
 /* Prevents re-loading with every encode/decode */
@@ -113,16 +113,19 @@ extern "C" {
     EMSCRIPTEN_KEEPALIVE void encodeDecodeImageLeclerc(int quality){
         emscripten_cancel_main_loop();
         encodeDecodeImage(leclercBmp, quality);
+        emscripten_set_main_loop_arg(&mainLoopCallback, &window, 0, true);
     }
 
     EMSCRIPTEN_KEEPALIVE void encodeDecodeImageMatterhorn(int quality){
         emscripten_cancel_main_loop();
         encodeDecodeImage(matterhornBmp, quality);
+        emscripten_set_main_loop_arg(&mainLoopCallback, &window, 0, true);
     }
 
     EMSCRIPTEN_KEEPALIVE void encodeDecodeImageSaturn(int quality){
         emscripten_cancel_main_loop();
         encodeDecodeImage(saturnBmp, quality);
+        emscripten_set_main_loop_arg(&mainLoopCallback, &window, 0, true);
     }
 
     jpeg::BitmapImageRGB lastUploadedImage;
@@ -130,20 +133,27 @@ extern "C" {
     EMSCRIPTEN_KEEPALIVE void encodeDecodeImagePreviouslyUploaded(int quality){
         emscripten_cancel_main_loop();
         encodeDecodeImage(lastUploadedImage, quality);
+        emscripten_set_main_loop_arg(&mainLoopCallback, &window, 0, true);
     }
 
     EMSCRIPTEN_KEEPALIVE void uploadedImageCallback(std::string const &filename, std::string const &mime_type, std::string_view buffer, void* args){
         std::cout << filename << "(" << mime_type << ") uploaded by user\n";
         lastUploadedImage = jpeg::BitmapImageRGB(reinterpret_cast<uint8_t const*>(buffer.data()), buffer.size());
+        emscripten_cancel_main_loop();
         encodeDecodeImage(lastUploadedImage, *reinterpret_cast<int*>(args));
+        emscripten_set_main_loop_arg(&mainLoopCallback, &window, 0, true);
     }
 
     EMSCRIPTEN_KEEPALIVE void encodeDecodeImageUpload(int quality){
         emscripten_browser_file::upload(".bmp", uploadedImageCallback, reinterpret_cast<void*>(&quality));
-        emscripten_cancel_main_loop();
+        // emscripten_cancel_main_loop();
     }
 }
 
 EMSCRIPTEN_KEEPALIVE int main(){
-    return encodeDecodeImage(matterhornBmp);
+    SDL_Init(SDL_INIT_VIDEO);
+    encodeDecodeImage(matterhornBmp);
+    emscripten_set_main_loop_arg(&mainLoopCallback, &window, 0, true);
+    SDL_Quit();
+    return EXIT_SUCCESS;
 }
