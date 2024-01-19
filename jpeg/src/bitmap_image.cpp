@@ -39,6 +39,7 @@ jpeg::BitmapImageRGB::BitmapImageRGB(uint8_t const* buffer, int len){
         return; 
     }
     SDL_FreeSurface(image);
+    SDL_FreeRW(stream);
 }
 
 bool jpeg::BitmapImageRGB::init(SDL_Surface* image){

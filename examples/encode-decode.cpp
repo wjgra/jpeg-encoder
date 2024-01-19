@@ -90,8 +90,9 @@ int main(int argc, char *argv[]){
     SDL_RenderPresent(renderer);
 
     // Encode image as JPEG
+    jpeg::JPEGImage outputJpeg;
     auto tStart = std::chrono::high_resolution_clock::now();
-    jpeg::JPEGEncoder enc(inputBmp, qualityValue);
+    jpeg::JPEGEncoder enc(inputBmp, outputJpeg, qualityValue);
     auto tEnd = std::chrono::high_resolution_clock::now();
 
     auto timeToEncode = 1e-3 * std::chrono::duration_cast<std::chrono::microseconds>(tEnd - tStart).count();
@@ -102,9 +103,9 @@ int main(int argc, char *argv[]){
     SDL_SetWindowTitle(window.getWindow(), updatedTitle.c_str());
 
     // Decode encoded JPEG image
-    jpeg::JPEGImage outputJpeg = enc.getJPEGImageData();
+    jpeg::BitmapImageRGB outputBmp;
     tStart = std::chrono::high_resolution_clock::now();
-    jpeg::JPEGDecoder dec(outputJpeg, qualityValue);
+    jpeg::JPEGDecoder dec(outputJpeg, outputBmp, qualityValue);
     tEnd = std::chrono::high_resolution_clock::now();
 
     auto timeToDecode = 1e-3 * std::chrono::duration_cast<std::chrono::microseconds>(tEnd - tStart).count();
@@ -114,9 +115,6 @@ int main(int argc, char *argv[]){
         + std::to_string(timeToEncode) + std::string(" ms, decode: ")
         + std::to_string(timeToDecode) + std::string(" ms)");
     SDL_SetWindowTitle(window.getWindow(), updatedTitle.c_str());
-
-
-    jpeg::BitmapImageRGB outputBmp = dec.getBitmapImageData();
     
     // Display post-encoding image in right half of window
     SDL_Texture* outputBmpTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB24, SDL_TEXTUREACCESS_STATIC, outputBmp.width, outputBmp.height);

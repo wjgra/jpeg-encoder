@@ -14,8 +14,10 @@ public:
     Window &operator=(Window&& other) = delete;
     SDL_Window* getWindow();
     void toggleFullScreen();
-    unsigned int const winWidth;
-    unsigned int const winHeight;
+    void resize(unsigned int width, unsigned int height);
+    void setTitle(std::string const& title = "[SET TITLE]");
+    unsigned int winWidth;
+    unsigned int winHeight;
 private:
     SDL_Window* window = nullptr;
     bool fullScreen = false;

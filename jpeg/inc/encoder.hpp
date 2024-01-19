@@ -15,19 +15,17 @@ namespace jpeg{
     class Encoder{
     public:
         Encoder(BitmapImageRGB const& inputImage,
+                JPEGImage& outputImage,
                 ColourMapper const& colourMapper,
                 DiscreteCosineTransformer const& discreteCosineTransformer,
                 Quantiser const& quantiser,
                 EntropyEncoder const& entropyEncoder);
-        void saveJPEGToFile(std::string const& savePath);
-        JPEGImage getJPEGImageData();
-    private:
-        JPEGImage jpegImageData;
+        ~Encoder(){std::cout << "Encoder dtor\n";};
     };
 
     class JPEGEncoder : public Encoder{
     public:
-        JPEGEncoder(BitmapImageRGB const& inputImage, int quality = 50);
+        JPEGEncoder(BitmapImageRGB const& inputImage, JPEGImage& outputImage, int quality = 50);
     };
 }
 

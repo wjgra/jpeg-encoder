@@ -60,8 +60,9 @@ int encodeDecodeImage(jpeg::BitmapImageRGB const& inputBmp, int quality = 80){
     SDL_DestroyTexture(inputBmpTexture);
 
     // Encode image as JPEG
+    jpeg::JPEGImage outputJpeg;
     auto tStart = std::chrono::high_resolution_clock::now();
-    jpeg::JPEGEncoder enc(inputBmp, quality);
+    jpeg::JPEGEncoder enc(inputBmp, outputJpeg, quality);
     auto tEnd = std::chrono::high_resolution_clock::now();
 
     auto timeToEncode = 1e-3 * std::chrono::duration_cast<std::chrono::microseconds>(tEnd - tStart).count();
@@ -69,12 +70,12 @@ int encodeDecodeImage(jpeg::BitmapImageRGB const& inputBmp, int quality = 80){
         + std::to_string(inputBmp.width) + std::string("x")
         + std::to_string(inputBmp.height) + std::string(", encode: ")
         + std::to_string(timeToEncode) + std::string(" ms)");
-    SDL_SetWindowTitle(window.getWindow(), updatedTitle.c_str());
+    window.setTitle(updatedTitle);
 
     // Decode encoded JPEG image
-    jpeg::JPEGImage outputJpeg = enc.getJPEGImageData();
+    jpeg::BitmapImageRGB outputBmp;
     tStart = std::chrono::high_resolution_clock::now();
-    jpeg::JPEGDecoder dec(outputJpeg, quality);
+    jpeg::JPEGDecoder dec(outputJpeg, outputBmp, quality);
     tEnd = std::chrono::high_resolution_clock::now();
 
     auto timeToDecode = 1e-3 * std::chrono::duration_cast<std::chrono::microseconds>(tEnd - tStart).count();
@@ -83,10 +84,7 @@ int encodeDecodeImage(jpeg::BitmapImageRGB const& inputBmp, int quality = 80){
         + std::to_string(inputBmp.height) + std::string(", encode: ")
         + std::to_string(timeToEncode) + std::string(" ms, decode: ")
         + std::to_string(timeToDecode) + std::string(" ms)");
-    SDL_SetWindowTitle(window.getWindow(), updatedTitle.c_str());
-
-
-    jpeg::BitmapImageRGB outputBmp = dec.getBitmapImageData();
+    window.setTitle(updatedTitle);
     
     // Display post-encoding image in right half of window
     SDL_Texture* outputBmpTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB24, SDL_TEXTUREACCESS_STATIC, outputBmp.width, outputBmp.height);
@@ -99,31 +97,32 @@ int encodeDecodeImage(jpeg::BitmapImageRGB const& inputBmp, int quality = 80){
     std::cout << "BMP size: " << inputBmp.fileSize << "B | JPEG size: " << "XX" << "B | Compression ratio: " << "1.0\n";
     
     SDL_DestroyRenderer(renderer);
+    /* enc.~Encoder();
+    dec.~Decoder(); */
     emscripten_set_main_loop_arg(&mainLoopCallback, &window, 0, true);
-    
     SDL_Quit();
     return EXIT_SUCCESS;
 }
 
-int encodeDecodeImage(std::string const& path = "img-cc/matterhorn.bmp", int quality = 80){
-    jpeg::BitmapImageRGB inputBmp(path);
-    return encodeDecodeImage(inputBmp, quality);
-}
+/* Prevents re-loading with every encode/decode */
+jpeg::BitmapImageRGB leclercBmp("img-cc/leclerc-ferrari.bmp");
+jpeg::BitmapImageRGB matterhornBmp("img-cc/matterhorn.bmp");
+jpeg::BitmapImageRGB saturnBmp("img-cc/cassini-saturn.bmp");
 
 extern "C" {
     EMSCRIPTEN_KEEPALIVE void encodeDecodeImageLeclerc(int quality){
         emscripten_cancel_main_loop();
-        encodeDecodeImage("img-cc/leclerc-ferrari.bmp", quality);
+        encodeDecodeImage(leclercBmp, quality);
     }
 
     EMSCRIPTEN_KEEPALIVE void encodeDecodeImageMatterhorn(int quality){
         emscripten_cancel_main_loop();
-        encodeDecodeImage("img-cc/matterhorn.bmp", quality);
+        encodeDecodeImage(matterhornBmp, quality);
     }
 
     EMSCRIPTEN_KEEPALIVE void encodeDecodeImageSaturn(int quality){
         emscripten_cancel_main_loop();
-        encodeDecodeImage("img-cc/cassini-saturn.bmp", quality);
+        encodeDecodeImage(saturnBmp, quality);
     }
 
     jpeg::BitmapImageRGB lastUploadedImage;
@@ -146,5 +145,5 @@ extern "C" {
 }
 
 EMSCRIPTEN_KEEPALIVE int main(){
-    return encodeDecodeImage();
+    return encodeDecodeImage(matterhornBmp);
 }

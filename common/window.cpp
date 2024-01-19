@@ -39,3 +39,13 @@ void Window::toggleFullScreen(){
         SDL_SetWindowFullscreen(window, winFlags);
     }
 }
+
+void Window::resize(unsigned int width, unsigned int height){
+    winWidth = width;
+    winHeight = height;
+    SDL_SetWindowSize(window, width, height);
+}
+
+void Window::setTitle(std::string const& title){
+     SDL_SetWindowTitle(window, title.c_str());
+}
