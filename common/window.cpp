@@ -19,7 +19,9 @@ Window::Window(unsigned int width, unsigned int height, std::string const& title
     }
 }
 
+#include <iostream>
 Window::~Window(){
+    std::cout << "Window dtor\n";
     SDL_DestroyWindow(window);
     SDL_Quit();
 }

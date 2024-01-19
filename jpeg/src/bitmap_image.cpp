@@ -13,7 +13,6 @@ jpeg::BitmapImageRGB::BitmapImageRGB(SDL_Surface* image){
 }
 
 jpeg::BitmapImageRGB::BitmapImageRGB(std::string const& loadPath){
-    fileSize = std::filesystem::file_size(loadPath.c_str());
     SDL_Surface* image = SDL_LoadBMP(loadPath.c_str());   
     if (!image){
         std::cout << "Failed to load image at " << loadPath << " (" << SDL_GetError() << ")\n";
@@ -24,6 +23,7 @@ jpeg::BitmapImageRGB::BitmapImageRGB(std::string const& loadPath){
         return; 
     }
     SDL_FreeSurface(image);
+    fileSize = std::filesystem::file_size(loadPath.c_str());
 }
 
 jpeg::BitmapImageRGB::BitmapImageRGB(uint8_t const* buffer, int len){

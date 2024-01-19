@@ -20,26 +20,31 @@ namespace jpeg{
         DCTChannelOutput transform(ColourMappedBlock::ChannelBlock const& inputChannel) const;
         ColourMappedBlock::ChannelBlock inverseTransform(DCTChannelOutput  const& inputChannel) const;
     protected:
+        std::array<int8_t, BlockGrid::blockElements> applyOffset(ColourMappedBlock::ChannelBlock const& input) const;
         virtual DCTChannelOutput applyTransform(ColourMappedBlock::ChannelBlock const& inputChannel) const = 0;
+        ColourMappedBlock::ChannelBlock removeOffset(std::array<int8_t, BlockGrid::blockElements> const& input) const;
         virtual ColourMappedBlock::ChannelBlock applyInverseTransform(DCTChannelOutput  const& inputChannel) const = 0;
     };
 
-    /* Calculates the 2D DCT/IDCT by direct calculation. */
+    /* Calculates the 2D DCT/IDCT by direct calculation in O(blockSize^4). */
     class NaiveCosineTransformer : public DiscreteCosineTransformer{
     protected:
         DCTChannelOutput applyTransform(ColourMappedBlock::ChannelBlock const& inputChannel) const override;
         ColourMappedBlock::ChannelBlock applyInverseTransform(DCTChannelOutput  const& inputChannel) const override;
     };
 
-    /* Calculates the 2D DCT by applying the 1D transform recursively. 
-       While this is quicker than the naive transformer in un-optimised builds, the naive transformer is more effectively
-       optimised in -O3 builds (naive is ~3x faster!). */
-    class NestedCosineTransformer : public DiscreteCosineTransformer{
+    /* Exploits separability of the 2D DCT/IDCT to split calculation into row and column transforms,
+       thereby reducing complexity to O(blockSize^3). Further speedup may be achieved by using a more 
+       efficient 1D transformer. */
+    class SeparatedDiscreteCosineTransformer : public DiscreteCosineTransformer{
     protected:
         DCTChannelOutput applyTransform(ColourMappedBlock::ChannelBlock const& inputChannel) const override;
         ColourMappedBlock::ChannelBlock applyInverseTransform(DCTChannelOutput  const& inputChannel) const override;
     private:
-        std::array<float, BlockGrid::blockSize> apply1DTransform(std::array<int8_t, BlockGrid::blockSize> const& input) const;
+        void apply1DTransformRow(int8_t const* src, float* dest, uint8_t u) const;
+        void apply1DTransformCol(float const* src, float* dest, uint8_t v) const;
+        void apply1DInverseTransformRow(float const* src, float* dest, uint8_t x) const;
+        void apply1DInverseTransformCol(float const* src, int8_t* dest, uint8_t y) const;
     };
 }
 #endif

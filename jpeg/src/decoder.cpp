@@ -33,6 +33,6 @@ jpeg::BitmapImageRGB jpeg::Decoder::getBitmapImageData(){
 }
 
 jpeg::JPEGDecoder::JPEGDecoder(JPEGImage const& inputImage, int quality) : 
-    Decoder(inputImage, RGBToRGBMapper()/* RGBToYCbCrMapper() */, NaiveCosineTransformer(), Quantiser(quality), HuffmanEncoder())
+    Decoder(inputImage, RGBToRGBMapper()/* RGBToYCbCrMapper() */, SeparatedDiscreteCosineTransformer(), Quantiser(quality), HuffmanEncoder())
 {
 }

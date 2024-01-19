@@ -8,11 +8,24 @@ jpeg::ColourMappedBlock::ChannelBlock jpeg::DiscreteCosineTransformer::inverseTr
     return applyInverseTransform(inputChannel);
 }
 
-jpeg::DCTChannelOutput jpeg::NaiveCosineTransformer::applyTransform(ColourMappedBlock::ChannelBlock const& inputChannel) const{
-    std::array<int8_t, BlockGrid::blockElements> offsetChannelData;
+std::array<int8_t, jpeg::BlockGrid::blockElements> jpeg::DiscreteCosineTransformer::applyOffset(ColourMappedBlock::ChannelBlock const& input) const{
+    std::array<int8_t, BlockGrid::blockElements> offsetData;
     for (size_t i = 0 ; i < BlockGrid::blockElements ; ++i){
-        offsetChannelData[i] = inputChannel[i] - 128;
+        offsetData[i] = input[i] - 128;
     }
+    return offsetData;
+}
+
+jpeg::ColourMappedBlock::ChannelBlock jpeg::DiscreteCosineTransformer::removeOffset(std::array<int8_t, BlockGrid::blockElements> const& input) const{
+    ColourMappedBlock::ChannelBlock output;
+    for (size_t i = 0 ; i < BlockGrid::blockElements ; ++i){
+        output[i] = input[i] + 128;
+    }
+    return output;
+}
+
+jpeg::DCTChannelOutput jpeg::NaiveCosineTransformer::applyTransform(ColourMappedBlock::ChannelBlock const& inputChannel) const{
+    std::array<int8_t, BlockGrid::blockElements> offsetChannelData = applyOffset(inputChannel);
     DCTChannelOutput output;
     for (size_t u = 0 ; u < BlockGrid::blockSize ; ++u){
         for (size_t v = 0 ; v < BlockGrid::blockSize ; ++v){
@@ -57,70 +70,88 @@ jpeg::ColourMappedBlock::ChannelBlock jpeg::NaiveCosineTransformer::applyInverse
             }
         }
     }
-    ColourMappedBlock::ChannelBlock channelData;
-    for (size_t i = 0 ; i < BlockGrid::blockElements ; ++i){
-        channelData[i] = offsetChannelData[i] + 128;
-    }
-    return channelData;
+    return removeOffset(offsetChannelData);
 }
 
-jpeg::DCTChannelOutput jpeg::NestedCosineTransformer::applyTransform(ColourMappedBlock::ChannelBlock const& inputChannel) const{
-    std::array<int8_t, BlockGrid::blockElements> offsetChannelData;
-    for (size_t i = 0 ; i < BlockGrid::blockElements ; ++i){
-        offsetChannelData[i] = inputChannel[i] - 128;
+jpeg::DCTChannelOutput jpeg::SeparatedDiscreteCosineTransformer::applyTransform(ColourMappedBlock::ChannelBlock const& inputChannel) const{
+    std::array<int8_t, BlockGrid::blockElements> offsetChannelData = applyOffset(inputChannel);
+
+    std::array<float, BlockGrid::blockElements> rowDCT;
+    for (size_t u = 0 ; u < BlockGrid::blockSize ; ++u){
+        apply1DTransformRow(offsetChannelData.data(), rowDCT.data() + u * BlockGrid::blockSize, u);
     }
+
     DCTChannelOutput output;
-
     for (size_t v = 0 ; v < BlockGrid::blockSize ; ++v){
-        float const outerScaleFactor = 0.5f * ((v == 0) ? 1/std::sqrt(2.0f) : 1);
-        std::array<float, BlockGrid::blockSize> outerAccumulator{};
-        for (size_t y = 0 ; y < BlockGrid::blockSize ; ++y){
-
-            /* std::array<float, BlockGrid::blockSize> innerDCT{};
-            for (size_t u = 0 ; u < BlockGrid::blockSize ; ++u){
-                float const innerScaleFactor = 0.5f * ((u == 0) ? 1/std::sqrt(2.0f) : 1);
-                float accumulator = 0;
-                
-                    for (size_t x = 0 ; x < BlockGrid::blockSize ; ++x){
-                        accumulator += offsetChannelData[x + y * BlockGrid::blockSize] 
-                                    * std::cos((2.0f * x + 1) * u * std::numbers::pi_v<float> / 16.0f);
-                    }
-                innerDCT[u] = innerScaleFactor * accumulator;
-            } */
-
-            std::array<int8_t, BlockGrid::blockSize> rowInput{};
-            std::copy(offsetChannelData.begin() + y * BlockGrid::blockSize, offsetChannelData.begin() + (y + 1) * BlockGrid::blockSize, rowInput.begin());
-            auto innerDCT = apply1DTransform(rowInput);
-
-            // vector operation
-            for (int i = 0 ; i < 8 ; ++i){
-                outerAccumulator[i] += innerDCT[i] * std::cos((2.0f * y + 1) * v * std::numbers::pi_v<float> / 16.0f);
-            }
-
-        }
-        // vector operation
-        for (int i = 0 ; i < 8 ; ++i){
-            output.data[i + v * BlockGrid::blockSize] = outerScaleFactor * outerAccumulator[i];
-        }
-
+        apply1DTransformCol(rowDCT.data(), output.data.data(), v);
     }
     return output;
 }
 
-std::array<float, jpeg::BlockGrid::blockSize> jpeg::NestedCosineTransformer::apply1DTransform(std::array<int8_t, BlockGrid::blockSize> const& input) const{
-    std::array<float, jpeg::BlockGrid::blockSize> output;
-    for (size_t u = 0 ; u < BlockGrid::blockSize ; ++u){
-        float const scaleFactor = 0.5f * ((u == 0) ? 1/std::sqrt(2.0f) : 1);
+jpeg::ColourMappedBlock::ChannelBlock jpeg::SeparatedDiscreteCosineTransformer::applyInverseTransform(DCTChannelOutput  const& inputChannel) const{
+    std::array<float, BlockGrid::blockElements> rowInverseDCT;
+    for (size_t x = 0 ; x < BlockGrid::blockSize ; ++x){
+        apply1DInverseTransformRow(inputChannel.data.data(), rowInverseDCT.data() + x * BlockGrid::blockSize, x);
+    }
+
+    std::array<int8_t, BlockGrid::blockElements> offsetChannelData;
+    for (size_t y = 0 ; y < BlockGrid::blockSize ; ++y){
+        apply1DInverseTransformCol(rowInverseDCT.data(), offsetChannelData.data(), y);
+    }
+    return removeOffset(offsetChannelData);
+}
+
+void jpeg::SeparatedDiscreteCosineTransformer::apply1DTransformRow(int8_t const* src, float* dest, uint8_t u) const{
+    float const scaleFactor = 0.5f * ((u == 0) ? 1/std::sqrt(2.0f) : 1);
+    for (size_t y = 0 ; y < BlockGrid::blockSize ; ++y){
         float accumulator = 0;
         for (size_t x = 0 ; x < BlockGrid::blockSize ; ++x){
-            accumulator += input[x] * std::cos((2.0f * x + 1) * u * std::numbers::pi_v<float> / 16.0f);
+            accumulator += std::cos((2.0f * x + 1) * u * std::numbers::pi_v<float> / 16.0f) * src[x + y * BlockGrid::blockSize];
+        }
+        dest[y] = scaleFactor * accumulator;
+    }
+}
+
+void jpeg::SeparatedDiscreteCosineTransformer::apply1DTransformCol(float const* src, float* dest, uint8_t v) const{
+    float const scaleFactor = 0.5f * ((v == 0) ? 1/std::sqrt(2.0f) : 1);
+    float* const output = dest + v * BlockGrid::blockSize;
+    for (size_t u = 0 ; u < BlockGrid::blockSize ; ++u){
+        float accumulator = 0;
+        for (size_t y = 0 ; y < BlockGrid::blockSize ; ++y){
+            accumulator += std::cos((2.0f * y + 1) * v * std::numbers::pi_v<float> / 16.0f) * src[y + u * BlockGrid::blockSize];
         }
         output[u] = scaleFactor * accumulator;
     }
-    return output;
 }
 
-jpeg::ColourMappedBlock::ChannelBlock jpeg::NestedCosineTransformer::applyInverseTransform(DCTChannelOutput  const& inputChannel) const{
-    /* Unimplemented */
-    return ColourMappedBlock::ChannelBlock();
+void jpeg::SeparatedDiscreteCosineTransformer::apply1DInverseTransformRow(float const* src, float* dest, uint8_t x) const{
+    for (size_t v = 0 ; v < BlockGrid::blockSize ; ++v){
+        float accumulator = 0;
+        for (size_t u = 0 ; u < BlockGrid::blockSize ; ++u){
+            float const scaleFactor = 0.5f * ((u == 0) ? 1/std::sqrt(2.0f) : 1);
+            accumulator += scaleFactor * std::cos((2.0f * x + 1) * u * std::numbers::pi_v<float> / 16.0f) * src[u + v * BlockGrid::blockSize];
+        }
+        dest[v] = accumulator;
+    }
+}
+void jpeg::SeparatedDiscreteCosineTransformer::apply1DInverseTransformCol(float const* src, int8_t* dest, uint8_t y) const{    
+    int8_t* const output = dest + y * BlockGrid::blockSize;
+    for (size_t x = 0 ; x < BlockGrid::blockSize ; ++x){
+        float accumulator = 0;
+        for (size_t v = 0 ; v < BlockGrid::blockSize ; ++v){
+            float const scaleFactor = 0.5f * ((v == 0) ? 1/std::sqrt(2.0f) : 1);
+            accumulator += scaleFactor * std::cos((2.0f * y + 1) * v * std::numbers::pi_v<float> / 16.0f) * src[v + x * BlockGrid::blockSize];
+        }
+        int8_t const maxInt{127};
+        int8_t const minInt{-128};
+        if (accumulator < minInt){
+            output[x] = minInt;
+        }
+        else if (accumulator > maxInt){
+            output[x] = maxInt;
+        }
+        else{
+            output[x] = accumulator;
+        }
+    }
 }
