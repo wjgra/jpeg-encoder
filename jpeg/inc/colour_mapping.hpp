@@ -5,11 +5,10 @@
 #include "..\inc\block_grid.hpp"
 
 #include <array>
-#include <vector>
+#include <cmath>
 
 namespace jpeg{
     struct ColourMappedBlock{
-        // std::array<std::array<uint8_t, 3>, BlockGrid::blockElements> data;
         using ChannelBlock = std::array<uint8_t, BlockGrid::blockElements>;
         std::array<ChannelBlock, 3> data;
     };

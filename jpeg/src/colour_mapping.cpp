@@ -12,7 +12,6 @@ jpeg::ColourMappedBlock jpeg::RGBToRGBMapper::applyMapping(jpeg::BlockGrid::Bloc
     ColourMappedBlock output;
     // Passthrough mapping
     for (size_t i = 0 ; i < inputBlock.data.size() ; ++i){
-        // output.data[i] = {inputBlock.data[i].r, inputBlock.data[i].g, inputBlock.data[i].b};
         output.data[0][i] = inputBlock.data[i].r;
         output.data[1][i] = inputBlock.data[i].g;
         output.data[2][i] = inputBlock.data[i].b;
@@ -34,21 +33,21 @@ jpeg::BlockGrid::Block jpeg::RGBToRGBMapper::reverseMapping(ColourMappedBlock co
 jpeg::ColourMappedBlock jpeg::RGBToYCbCrMapper::applyMapping(jpeg::BlockGrid::Block const& inputBlock) const{
     ColourMappedBlock output;
     // Conversion from https://en.wikipedia.org/wiki/YCbCr#JPEG_conversion
-    auto Y = [](BitmapImageRGB::PixelData rgb){
-        return uint8_t(0 + 0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b);
+    // Range mapping from ITU-T T.871
+    auto round = [](double in){return std::floor(in + 0.5);};
+    auto mapToRange = [round](double in){
+        return uint8_t(std::min(std::max(0.0, round(in)), 255.0));
     };
-    auto Cb = [](BitmapImageRGB::PixelData rgb){
-        return uint8_t(128 - 0.168736 * rgb.r - 0.331264 * rgb.g + 0.5 * rgb.b);
+    auto Y = [mapToRange](BitmapImageRGB::PixelData rgb){
+        return mapToRange(0 + 0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b);
     };
-    auto Cr = [](BitmapImageRGB::PixelData rgb){
-        return uint8_t(128 + 0.5 * rgb.r - 0.418688 * rgb.g - 0.081312 * rgb.b);
+    auto Cb = [mapToRange](BitmapImageRGB::PixelData rgb){
+        return mapToRange(128 - 0.168736 * rgb.r - 0.331264 * rgb.g + 0.5 * rgb.b);
+    };
+    auto Cr = [mapToRange](BitmapImageRGB::PixelData rgb){
+        return mapToRange(128 + 0.5 * rgb.r - 0.418688 * rgb.g - 0.081312 * rgb.b);
     };
     for (size_t i = 0 ; i < inputBlock.data.size() ; ++i){
-        /* output.data[i] = {
-            Y(inputBlock.data[i]),
-            Cb(inputBlock.data[i]),
-            Cr(inputBlock.data[i])
-        }; */
         output.data[0][i] = Y(inputBlock.data[i]);
         output.data[1][i] = Cb(inputBlock.data[i]);
         output.data[2][i] = Cr(inputBlock.data[i]);
@@ -59,14 +58,19 @@ jpeg::ColourMappedBlock jpeg::RGBToYCbCrMapper::applyMapping(jpeg::BlockGrid::Bl
 jpeg::BlockGrid::Block jpeg::RGBToYCbCrMapper::reverseMapping(ColourMappedBlock const& inputBlock) const{
     BlockGrid::Block output;
     // Reverse conversion from https://en.wikipedia.org/wiki/YCbCr#JPEG_conversion
-    auto R = [](uint8_t Y/* , uint8_t Cb */, uint8_t Cr){
-        return uint8_t(Y + 1.402 * (Cr - 128));
+    // Range mapping from ITU-T T.871
+    auto round = [](double in){return std::floor(in + 0.5);};
+    auto mapToRange = [round](double in){
+        return uint8_t(std::min(std::max(0.0, round(in)), 255.0));
     };
-    auto G = [](uint8_t Y, uint8_t Cb, uint8_t Cr){
-        return uint8_t(Y - 0.344136 * (Cb - 128) - 0.714136 * (Cr - 128));
+    auto R = [mapToRange](uint8_t Y/* , uint8_t Cb */, uint8_t Cr){
+        return mapToRange(Y + 1.402 * (Cr - 128));
     };
-    auto B = [](uint8_t Y, uint8_t Cb/* , uint8_t Cr */){
-        return uint8_t(Y + 1.772 * (Cb - 128));
+    auto G = [mapToRange](uint8_t Y, uint8_t Cb, uint8_t Cr){
+        return mapToRange(Y - 0.344136 * (Cb - 128) - 0.714136 * (Cr - 128));
+    };
+    auto B = [mapToRange](uint8_t Y, uint8_t Cb/* , uint8_t Cr */){
+        return mapToRange(Y + 1.772 * (Cb - 128));
     };
     for (size_t i = 0 ; i < inputBlock.data[0].size() ; ++i){
         output.data[i].r = R(inputBlock.data[0][i]/* ,inputBlock.data[1][i] */,inputBlock.data[2][i]);
