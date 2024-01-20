@@ -25,6 +25,6 @@ jpeg::Decoder::Decoder(JPEGImage inputImage,
 }
 
 jpeg::JPEGDecoder::JPEGDecoder(JPEGImage const& inputImage, BitmapImageRGB& outputImage, int quality) : 
-    Decoder(inputImage, outputImage, RGBToRGBMapper()/* RGBToYCbCrMapper() */, SeparatedDiscreteCosineTransformer(), Quantiser(quality), HuffmanEncoder())
+    Decoder(inputImage, outputImage, RGBToYCbCrMapper(), SeparatedDiscreteCosineTransformer(), Quantiser(quality), HuffmanEncoder())
 {
 }

@@ -12,14 +12,10 @@
 namespace jpeg{
     /* Stores a JPEG image */
     struct JPEGImage{
-        ~JPEGImage(){std::cout << "JPEGImage dtor\n";};
         uint16_t width, height;
+        std::uintmax_t fileSize;
         struct BlockData{
             struct ScanData{
-                // Temp data to allow short-circuit testing
-                /* ColourMappedBlock tempColMapBlock;
-                DCTChannelOutput tempDCT;
-                QuantisedChannelOutput tempQuantised; */
                 RunLengthEncodedChannelOutput tempRLE; // one block-channel
             };
             std::array<ScanData, 3> components;

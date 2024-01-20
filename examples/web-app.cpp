@@ -13,6 +13,26 @@
 #include "..\jpeg\inc\encoder.hpp"
 #include "..\jpeg\inc\decoder.hpp"
 
+/* This is similar to the encode-decode example, but has been adapted to make use of the HTML interface
+   defined in template.html. In Emscripten, the main loop is simulated by throwing a JavaScript exception, 
+   then periodically calling a callback function. The difficulty is that this functions like a goto
+   statement, so any automatic variables declared at the scope of emscripten_set_main_loop are not destroyed.
+   Somewhat ironically, the exception is the string 'unwind', though stack unwinding fails to occur!
+   
+   To prevent the window being destroyed and recreated every time an encode-decode function is called, the 
+   Window object is global. Similarly, to prevent images stored in the simulated filesystem being loaded
+   multiple times (and possibly not freed due to GC at the C++/JS boundary, the input bitmaps are global too).
+*/
+
+  
+//   Compiles with no warnings:
+//   emcc examples/web-app.cpp common/*.cpp jpeg/src/*.cpp -o "jpeg.html" -W -Wall -Wextra -pedantic 
+//   -std=c++20 -sUSE_SDL=2 --shell-file template.html -I "C:\Users\wjgra\source\repos\emsdk\upstream\emscripten\cache\sysroot\include" 
+//   --preload-file img-cc/ -sALLOW_MEMORY_GROWTH=1 -sEXPORTED_RUNTIME_METHODS=[ccall] -sEXPORTED_FUNCTIONS=[_main,_malloc,_free] -O3
+//
+//   DO NOT BUILD FOR NON-EMSCRIPTEN TARGETS
+
+
 bool mainLoop(Window& window){
     SDL_Event event;
     while (SDL_PollEvent(&event)){
@@ -47,7 +67,6 @@ void encodeDecodeImage(jpeg::BitmapImageRGB const& inputBmp, int quality = 80){
         return;
     }
 
-    // Window window(2 * inputBmp.width, inputBmp.height, "BMP-to-JPEG");
     window.resize(2 * inputBmp.width, inputBmp.height);
     window.setTitle("BMP-to-JPEG");
     
@@ -98,10 +117,11 @@ void encodeDecodeImage(jpeg::BitmapImageRGB const& inputBmp, int quality = 80){
     SDL_RenderPresent(renderer);
     SDL_DestroyTexture(outputBmpTexture);
 
-    std::cout << "BMP size: " << inputBmp.fileSize << "B | JPEG size: " << "XX" << "B | Compression ratio: " << "1.0\n";
-    
+    std::cout << "BMP size: " << inputBmp.fileSize << "B | JPEG size: " << outputJpeg.fileSize 
+              << "B | Compression ratio: " << (outputJpeg.fileSize == 0 ? std::string("N/A") : std::to_string(double(inputBmp.fileSize)/double(outputJpeg.fileSize))) 
+              << " | Encode time: " << std::to_string(timeToEncode) + std::string(" ms | Decode time: ") << std::to_string(timeToDecode)
+              << " ms\n";
     SDL_DestroyRenderer(renderer);    
-    return;
 }
 
 /* Prevents re-loading with every encode/decode */
@@ -128,6 +148,7 @@ extern "C" {
         emscripten_set_main_loop_arg(&mainLoopCallback, &window, 0, true);
     }
 
+    /* Prevents user having to re-upload the image if the quality value is changed */
     jpeg::BitmapImageRGB lastUploadedImage;
 
     EMSCRIPTEN_KEEPALIVE void encodeDecodeImagePreviouslyUploaded(int quality){
@@ -146,7 +167,6 @@ extern "C" {
 
     EMSCRIPTEN_KEEPALIVE void encodeDecodeImageUpload(int quality){
         emscripten_browser_file::upload(".bmp", uploadedImageCallback, reinterpret_cast<void*>(&quality));
-        // emscripten_cancel_main_loop();
     }
 }
 

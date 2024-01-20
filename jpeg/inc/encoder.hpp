@@ -20,7 +20,6 @@ namespace jpeg{
                 DiscreteCosineTransformer const& discreteCosineTransformer,
                 Quantiser const& quantiser,
                 EntropyEncoder const& entropyEncoder);
-        ~Encoder(){std::cout << "Encoder dtor\n";};
     };
 
     class JPEGEncoder : public Encoder{

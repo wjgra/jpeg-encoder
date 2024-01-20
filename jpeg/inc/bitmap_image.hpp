@@ -17,7 +17,6 @@ namespace jpeg{
         BitmapImageRGB(SDL_Surface* image);
         BitmapImageRGB(std::string const& loadPath);
         BitmapImageRGB(uint8_t const* buffer, int len);
-        ~BitmapImageRGB(){std::cout << "Bitmap dtor\n";};
         struct PixelData{
             uint8_t r, g, b;   
         };
