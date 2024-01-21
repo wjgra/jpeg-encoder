@@ -7,7 +7,7 @@
 #include <numbers>
 
 #include "..\inc\colour_mapping.hpp"
-#include "..\inc\block_grid.hpp" // Issue: separate dependencies of block and block grid
+#include "..\inc\block_grid.hpp"
 namespace jpeg{
 
     struct DCTChannelOutput{
@@ -21,16 +21,16 @@ namespace jpeg{
         ColourMappedBlock::ChannelBlock inverseTransform(DCTChannelOutput  const& inputChannel) const;
     protected:
         std::array<int8_t, BlockGrid::blockElements> applyOffset(ColourMappedBlock::ChannelBlock const& input) const;
-        virtual DCTChannelOutput applyTransform(ColourMappedBlock::ChannelBlock const& inputChannel) const = 0;
+        virtual DCTChannelOutput applyTransform(std::array<int8_t, BlockGrid::blockElements> const& inputChannel) const = 0;
         ColourMappedBlock::ChannelBlock removeOffset(std::array<int8_t, BlockGrid::blockElements> const& input) const;
-        virtual ColourMappedBlock::ChannelBlock applyInverseTransform(DCTChannelOutput  const& inputChannel) const = 0;
+        virtual std::array<int8_t, BlockGrid::blockElements> applyInverseTransform(DCTChannelOutput  const& inputChannel) const = 0;
     };
 
     /* Calculates the 2D DCT/IDCT by direct calculation in O(blockSize^4). */
     class NaiveCosineTransformer : public DiscreteCosineTransformer{
     protected:
-        DCTChannelOutput applyTransform(ColourMappedBlock::ChannelBlock const& inputChannel) const override;
-        ColourMappedBlock::ChannelBlock applyInverseTransform(DCTChannelOutput  const& inputChannel) const override;
+        DCTChannelOutput applyTransform(std::array<int8_t, BlockGrid::blockElements> const& inputChannel) const override;
+        std::array<int8_t, BlockGrid::blockElements> applyInverseTransform(DCTChannelOutput  const& inputChannel) const override;
     };
 
     /* Exploits separability of the 2D DCT/IDCT to split calculation into row and column transforms,
@@ -38,13 +38,13 @@ namespace jpeg{
        efficient 1D transformer. */
     class SeparatedDiscreteCosineTransformer : public DiscreteCosineTransformer{
     protected:
-        DCTChannelOutput applyTransform(ColourMappedBlock::ChannelBlock const& inputChannel) const override;
-        ColourMappedBlock::ChannelBlock applyInverseTransform(DCTChannelOutput  const& inputChannel) const override;
+        DCTChannelOutput applyTransform(std::array<int8_t, BlockGrid::blockElements> const& inputChannel) const override;
+        std::array<int8_t, BlockGrid::blockElements> applyInverseTransform(DCTChannelOutput  const& inputChannel) const override;
     private:
         void apply1DTransformRow(int8_t const* src, float* dest, uint8_t u) const;
         void apply1DTransformCol(float const* src, float* dest, uint8_t v) const;
         void apply1DInverseTransformRow(float const* src, float* dest, uint8_t x) const;
         void apply1DInverseTransformCol(float const* src, int8_t* dest, uint8_t y) const;
-    };
+    };    
 }
 #endif

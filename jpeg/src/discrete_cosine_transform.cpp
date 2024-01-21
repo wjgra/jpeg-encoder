@@ -1,11 +1,13 @@
 #include "..\inc\discrete_cosine_transform.hpp"
 
 jpeg::DCTChannelOutput jpeg::DiscreteCosineTransformer::transform(ColourMappedBlock::ChannelBlock const& inputChannel) const{
-    return applyTransform(inputChannel); // Issue: move transforms to separate functions
+    std::array<int8_t, BlockGrid::blockElements> offsetChannelData = applyOffset(inputChannel);
+    return applyTransform(offsetChannelData);
 }
 
 jpeg::ColourMappedBlock::ChannelBlock jpeg::DiscreteCosineTransformer::inverseTransform(DCTChannelOutput  const& inputChannel) const{
-    return applyInverseTransform(inputChannel);
+    std::array<int8_t, BlockGrid::blockElements> offsetChannelData = applyInverseTransform(inputChannel);
+    return removeOffset(offsetChannelData);
 }
 
 std::array<int8_t, jpeg::BlockGrid::blockElements> jpeg::DiscreteCosineTransformer::applyOffset(ColourMappedBlock::ChannelBlock const& input) const{
@@ -24,8 +26,7 @@ jpeg::ColourMappedBlock::ChannelBlock jpeg::DiscreteCosineTransformer::removeOff
     return output;
 }
 
-jpeg::DCTChannelOutput jpeg::NaiveCosineTransformer::applyTransform(ColourMappedBlock::ChannelBlock const& inputChannel) const{
-    std::array<int8_t, BlockGrid::blockElements> offsetChannelData = applyOffset(inputChannel);
+jpeg::DCTChannelOutput jpeg::NaiveCosineTransformer::applyTransform(std::array<int8_t, BlockGrid::blockElements> const& inputChannel) const{
     DCTChannelOutput output;
     for (size_t u = 0 ; u < BlockGrid::blockSize ; ++u){
         for (size_t v = 0 ; v < BlockGrid::blockSize ; ++v){
@@ -33,7 +34,7 @@ jpeg::DCTChannelOutput jpeg::NaiveCosineTransformer::applyTransform(ColourMapped
             float accumulator = 0;
             for (size_t x = 0 ; x < BlockGrid::blockSize ; ++x){
                 for (size_t y = 0 ; y < BlockGrid::blockSize ; ++y){
-                    accumulator += offsetChannelData[x + y * BlockGrid::blockSize] 
+                    accumulator += inputChannel[x + y * BlockGrid::blockSize] 
                         * std::cos((2.0f * x + 1) * u * std::numbers::pi_v<float> / 16.0f)
                         * std::cos((2.0f * y + 1) * v * std::numbers::pi_v<float> / 16.0f);
                 }
@@ -44,7 +45,7 @@ jpeg::DCTChannelOutput jpeg::NaiveCosineTransformer::applyTransform(ColourMapped
     return output;
 }
 
-jpeg::ColourMappedBlock::ChannelBlock jpeg::NaiveCosineTransformer::applyInverseTransform(DCTChannelOutput  const& inputChannel) const{
+std::array<int8_t, jpeg::BlockGrid::blockElements> jpeg::NaiveCosineTransformer::applyInverseTransform(DCTChannelOutput  const& inputChannel) const{
     std::array<int8_t, BlockGrid::blockElements> offsetChannelData;
     for (size_t x = 0 ; x < BlockGrid::blockSize ; ++x){
         for (size_t y = 0 ; y < BlockGrid::blockSize ; ++y){
@@ -70,15 +71,13 @@ jpeg::ColourMappedBlock::ChannelBlock jpeg::NaiveCosineTransformer::applyInverse
             }
         }
     }
-    return removeOffset(offsetChannelData);
+    return offsetChannelData;
 }
 
-jpeg::DCTChannelOutput jpeg::SeparatedDiscreteCosineTransformer::applyTransform(ColourMappedBlock::ChannelBlock const& inputChannel) const{
-    std::array<int8_t, BlockGrid::blockElements> offsetChannelData = applyOffset(inputChannel);
-
+jpeg::DCTChannelOutput jpeg::SeparatedDiscreteCosineTransformer::applyTransform(std::array<int8_t, BlockGrid::blockElements> const& inputChannel) const{
     std::array<float, BlockGrid::blockElements> rowDCT;
     for (size_t u = 0 ; u < BlockGrid::blockSize ; ++u){
-        apply1DTransformRow(offsetChannelData.data(), rowDCT.data() + u * BlockGrid::blockSize, u);
+        apply1DTransformRow(inputChannel.data(), rowDCT.data() + u * BlockGrid::blockSize, u);
     }
 
     DCTChannelOutput output;
@@ -88,7 +87,7 @@ jpeg::DCTChannelOutput jpeg::SeparatedDiscreteCosineTransformer::applyTransform(
     return output;
 }
 
-jpeg::ColourMappedBlock::ChannelBlock jpeg::SeparatedDiscreteCosineTransformer::applyInverseTransform(DCTChannelOutput  const& inputChannel) const{
+std::array<int8_t, jpeg::BlockGrid::blockElements> jpeg::SeparatedDiscreteCosineTransformer::applyInverseTransform(DCTChannelOutput  const& inputChannel) const{
     std::array<float, BlockGrid::blockElements> rowInverseDCT;
     for (size_t x = 0 ; x < BlockGrid::blockSize ; ++x){
         apply1DInverseTransformRow(inputChannel.data.data(), rowInverseDCT.data() + x * BlockGrid::blockSize, x);
@@ -98,7 +97,7 @@ jpeg::ColourMappedBlock::ChannelBlock jpeg::SeparatedDiscreteCosineTransformer::
     for (size_t y = 0 ; y < BlockGrid::blockSize ; ++y){
         apply1DInverseTransformCol(rowInverseDCT.data(), offsetChannelData.data(), y);
     }
-    return removeOffset(offsetChannelData);
+    return offsetChannelData;
 }
 
 void jpeg::SeparatedDiscreteCosineTransformer::apply1DTransformRow(int8_t const* src, float* dest, uint8_t u) const{

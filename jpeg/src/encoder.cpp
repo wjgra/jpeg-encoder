@@ -62,6 +62,6 @@ jpeg::Encoder::Encoder(BitmapImageRGB const& inputImage,
 }
 
 jpeg::JPEGEncoder::JPEGEncoder(BitmapImageRGB const& inputImage, JPEGImage& outputImage, int quality) : 
-    Encoder(inputImage, outputImage, RGBToYCbCrMapper(), SeparatedDiscreteCosineTransformer(), Quantiser(quality), HuffmanEncoder())
+    Encoder(inputImage, outputImage, RGBToRGBMapper(), SeparatedDiscreteCosineTransformer(), Quantiser(quality), HuffmanEncoder())
 {
 }
