@@ -45,8 +45,11 @@ namespace jpeg{
     protected:
         EntropyChannelOutput applyFinalEncoding(RunLengthEncodedChannelOutput const& input) const override;
         RunLengthEncodedChannelOutput removeFinalEncoding(EntropyChannelOutput const& input) const override;
+    private:
+        // huffman tables here...
     };
 
+    /* Could implement arithmetic coding by inheriting from EntropyEncoder and implementing apply/remove FinalEncoding */
 }
 
 #endif
