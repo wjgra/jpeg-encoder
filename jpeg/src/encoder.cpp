@@ -10,6 +10,10 @@ jpeg::Encoder::Encoder(BitmapImageRGB const& inputImage,
                        EntropyEncoder const& entropyEncoder)
                        /* OPTIONAL: sequential/progressive option; downsampling option */
 {
+    // reset bit stream
+    outputImage.bitData.clearStream();
+    // TBC: write header to bitstream
+
     outputImage.data.clear();
     InputBlockGrid blockGrid(inputImage);
     std::array<int16_t, 3> lastDCValues = {0,0,0};
@@ -20,11 +24,10 @@ jpeg::Encoder::Encoder(BitmapImageRGB const& inputImage,
         for (size_t channel = 0 ; channel < 3 ; ++channel){
             DCTChannelOutput dctData = discreteCosineTransformer.transform(colourMappedBlock.data[channel]);
             QuantisedChannelOutput quantisedOutput = quantiser.quantise(dctData);
-            EntropyChannelOutput entropyCodedOutput = entropyEncoder.encode(quantisedOutput, lastDCValues[channel]);
-            outputImage.data.back().components[channel].tempRLE = entropyCodedOutput.temp;
+            EntropyChannelOutput entropyCodedOutput = entropyEncoder.encode(quantisedOutput, lastDCValues[channel], outputImage.bitData);
+            outputImage.data.back().components[channel].tempRLE = entropyCodedOutput.temp; // to be deleted!
         }
     }
-    // Assign compressed data to struct
     outputImage.width = inputImage.width;
     outputImage.height = inputImage.height;
 }

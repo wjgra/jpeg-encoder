@@ -21,6 +21,9 @@ namespace jpeg{
             std::array<ScanData, 3> components;
         };
         std::vector<BlockData> data;
+
+
+        BitStream bitData;
     };
 };
 

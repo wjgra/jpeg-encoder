@@ -3,10 +3,35 @@
 
 #include <vector>
 #include <cstdint>
+#include <cassert>
 
 namespace jpeg{
 
-    /* A stream to which up to 8 bits can be pushed at a time.
+    struct BitStreamReadProgress{ // consider including in BitStream
+        size_t currentByte;
+        size_t currentBit;
+        BitStreamReadProgress(){
+            reset();
+        }
+        void reset(){
+            currentByte = 0;
+            currentBit = 0;
+        }
+        void advanceBits(size_t numBits){
+            currentBit += numBits;
+            while (currentBit >= 8){
+                ++currentByte;
+                currentBit -= 8;
+            }
+        }
+        void advanceBit(){
+            advanceBits(1);
+        }
+    };
+
+
+
+    /* A stream to which up to 16 bits can be pushed at a time.
        A vector of bytes representing the stream is retrievable as output. */
     class BitStream{
     public:
@@ -18,11 +43,20 @@ namespace jpeg{
             bitsInBuffer = 0;
             stream.clear();
         }
-        void pushBits(uint8_t data, uint8_t numberOfBitsToPush){
+        static bool getBit(uint8_t input, size_t pos)
+        {
+            return input & (1u << (7 - pos));
+        }
+
+
+        void pushBits(uint8_t data, size_t numberOfBitsToPush){
+            assert(numberOfBitsToPush <= 8);
+            // Remove unneeded leading bits
+            data &= 0xFF >> (8 - numberOfBitsToPush);
             int offset = 8 - bitsInBuffer - numberOfBitsToPush;
             if (offset >= 0){
                 // Bits fit in buffer
-                buffer |= uint8_t(data << offset);
+                buffer |= uint8_t((data) << offset);
                 bitsInBuffer += numberOfBitsToPush;
                 if (offset == 0){
                     // Push buffer to stream
@@ -39,6 +73,52 @@ namespace jpeg{
                 bitsInBuffer = -offset;
             }
         }
+        
+        void pushBits(uint16_t data, size_t numberOfBitsToPush){
+            assert(numberOfBitsToPush <= 16);
+            if (numberOfBitsToPush <= 8){
+                uint8_t const u8Data = data & 0x00FF;
+                pushBits(u8Data, numberOfBitsToPush);
+            }
+            else{
+                uint8_t const u8LeftData = data >> 8;
+                pushBits(u8LeftData, numberOfBitsToPush - 8);
+                uint8_t const u8RightData = data & 0x00FF;
+                pushBits(u8RightData, 8);
+            }
+        }
+        
+        uint8_t readByte(size_t byte) const{
+            if (byte == stream.size()){
+                return buffer;
+            }
+            else{
+                return stream[byte];
+            }
+            
+        }
+
+        bool readNextBit(BitStreamReadProgress& progress) const{
+            uint8_t currentByte = readByte(progress.currentByte);
+            bool output = getBit(currentByte, progress.currentBit);
+            progress.advanceBit();
+            return output;
+        }
+
+        /* bool readNextBits(BitStreamReadProgress& progress, size_t numberOfBits) const{
+            uint8_t currentByte = readByte(progress.currentByte);
+            bool output = getBit(currentByte, progress.currentBit);
+            progress.advanceBit();
+            return output;
+        } */
+
+
+
+       /*  void finishStream(){
+            stream.push_back(buffer);
+            bitsInBuffer = 0;
+        } */
+
         std::vector<uint8_t> getStream() const{
             auto temp = stream;
             temp.push_back(buffer);
@@ -46,7 +126,7 @@ namespace jpeg{
         }
     private:
         uint8_t buffer;
-        uint8_t bitsInBuffer;
+        size_t bitsInBuffer;
         std::vector<uint8_t> stream;
     };
 }

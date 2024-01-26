@@ -1,13 +1,13 @@
 #include "..\inc\entropy_encoder.hpp"
 
-jpeg::EntropyChannelOutput jpeg::EntropyEncoder::encode(QuantisedChannelOutput const& input, int16_t& lastDCValue) const{
+jpeg::EntropyChannelOutput jpeg::EntropyEncoder::encode(QuantisedChannelOutput const& input, int16_t& lastDCValue, BitStream& outputStream) const{
     QuantisedChannelOutput zigZagMappedChannelData = mapFromGridToZigZag(input);
     RunLengthEncodedChannelOutput runLengthEncodedChannelData = applyRunLengthEncoding(zigZagMappedChannelData, lastDCValue);
-    return applyFinalEncoding(runLengthEncodedChannelData);
+    return applyFinalEncoding(runLengthEncodedChannelData, outputStream);
 }
 
-jpeg::QuantisedChannelOutput jpeg::EntropyEncoder::decode(EntropyChannelOutput const& input, int16_t& lastDCValue) const{
-    RunLengthEncodedChannelOutput runLengthEncodedChannelData = input.temp;
+jpeg::QuantisedChannelOutput jpeg::EntropyEncoder::decode(EntropyChannelOutput const& input, BitStream const& inputStream, BitStreamReadProgress& readProgress, int16_t& lastDCValue) const{
+    RunLengthEncodedChannelOutput runLengthEncodedChannelData = removeFinalEncoding(input, inputStream, readProgress);
     QuantisedChannelOutput zigZagMappedChannelData = removeRunLengthEncoding(runLengthEncodedChannelData, lastDCValue);
     return mapFromZigZagToGrid(zigZagMappedChannelData);
 }
@@ -124,12 +124,125 @@ jpeg::QuantisedChannelOutput jpeg::EntropyEncoder::removeRunLengthEncoding(RunLe
     return output;
 }
 
-jpeg::EntropyChannelOutput jpeg::HuffmanEncoder::applyFinalEncoding(RunLengthEncodedChannelOutput const& input) const{
-    EntropyChannelOutput output;
-    output.temp = input;
-    return output;
+jpeg::HuffmanEncoder::HuffmanEncoder()
+    : dcLuminanceHuffTable{{
+            {2, 0b00},
+            {3, 0b010},
+            {3, 0b011},
+            {3, 0b100},
+            {3, 0b101},
+            {3, 0b110},
+            {4, 0b1110},
+            {5, 0b11110},
+            {6, 0b111110},
+            {7, 0b1111110},
+            {8, 0b11111110},
+            {9, 0b111111110}
+            }}
+{
+    for (size_t i = 0 ; i < dcLuminanceHuffTable.size(); ++i){
+        dcLuminanceHuffLookup[dcLuminanceHuffTable[i].codeWord] = i; // binary search would likely be faster
+    }
 }
 
-jpeg::RunLengthEncodedChannelOutput jpeg::HuffmanEncoder::removeFinalEncoding(EntropyChannelOutput const& input) const{
-    return input.temp;
+jpeg::EntropyChannelOutput jpeg::HuffmanEncoder::applyFinalEncoding(RunLengthEncodedChannelOutput const& input, BitStream& outputStream) const{
+    // get DC code, push to stream
+    bool const dcDiffPositive = input.dcDifference > 0;
+    uint16_t const dcDiffAmplitude = dcDiffPositive ? input.dcDifference : -input.dcDifference;
+    uint8_t const categorySSSS = std::bit_width(dcDiffAmplitude);
+    uint16_t const bitMask = 0xFFFF >> (16 - categorySSSS);
+    // push huff code for category
+    outputStream.pushBits(dcLuminanceHuffTable[categorySSSS].codeWord, dcLuminanceHuffTable[categorySSSS].codeLength);
+    if (categorySSSS > 0){
+        if (dcDiffPositive){
+            outputStream.pushBits(dcDiffAmplitude, categorySSSS);
+        }
+        else{
+            outputStream.pushBits((uint16_t)(~dcDiffAmplitude), categorySSSS);
+        }
+    }
+
+    // get AC codes, push to stream
+    
+    
+    /////////////////////////////////
+    EntropyChannelOutput entropyOutput;
+    entropyOutput.temp = input;
+    return entropyOutput;
+}
+
+// util
+uint16_t appendBit(uint16_t input, bool bit){
+    return (input << 1) | uint16_t(bit);
+}
+
+
+jpeg::RunLengthEncodedChannelOutput jpeg::HuffmanEncoder::removeFinalEncoding(EntropyChannelOutput const& input, BitStream const& inputStream, BitStreamReadProgress& readProgress) const{
+    auto out = input.temp;
+    ////
+    
+    // march forwards from current bit until huffman code encountered
+    // uint8_t currentByte = inputStream.readByte(readProgress.currentByte);
+
+    // uint8_t bitsToIgnore = 0xFFFF & (0xFFFF << (8 - readProgress.currentBit) );
+
+    // uint8_t shiftedInputByte = 0xFFFF & (currentByte << (8 - readProgress.currentBit) );
+
+
+    uint16_t candidateHuffCode = inputStream.readNextBit(readProgress);
+    candidateHuffCode = appendBit(candidateHuffCode, inputStream.readNextBit(readProgress));
+    
+    /* (candidateHuffCode << 1) | ((uint16_t)inputStream.readNextBit(readProgress)); */
+    size_t candidateBitLength = 2;
+    
+    ;
+    //[candidateHuffCode];
+
+
+    while(!(dcLuminanceHuffLookup.contains(candidateHuffCode) && (candidateBitLength == dcLuminanceHuffTable[dcLuminanceHuffLookup.at(candidateHuffCode)].codeLength))){
+        candidateHuffCode = appendBit(candidateHuffCode, inputStream.readNextBit(readProgress));
+        ++candidateBitLength;
+
+        // 
+        auto a = dcLuminanceHuffLookup.contains(6);
+        auto b = dcLuminanceHuffTable[6].codeLength;
+
+
+        if (candidateBitLength > 16){
+            throw std::runtime_error("Invalid Huffman code encountered in input JPEG data.");
+        }
+    }
+    // read dc diff and save to temp;
+
+    auto categorySSSS = dcLuminanceHuffLookup.at(candidateHuffCode);
+
+    if (categorySSSS == 0){
+        out.dcDifference = 0;
+    }
+    else{
+        uint16_t mask = 0;
+        for (int i = 0 ; i < categorySSSS ; ++i){
+                mask = appendBit(mask, 1);
+        }
+        if (inputStream.readNextBit(readProgress)){
+            // diff is positive
+            // the below is inefficient
+            uint16_t dcDiffAmplitude = 1;
+            for (int i = 1 ; i < categorySSSS ; ++i){
+                dcDiffAmplitude = appendBit(dcDiffAmplitude, inputStream.readNextBit(readProgress));
+            }
+            out.dcDifference = int16_t(mask & dcDiffAmplitude);
+        }
+        else{
+            // diff is negative
+            // the below is inefficient
+            uint16_t dcDiffAmplitudeComplement = 0;
+            for (int i = 1 ; i < categorySSSS ; ++i){
+                dcDiffAmplitudeComplement = appendBit(dcDiffAmplitudeComplement, inputStream.readNextBit(readProgress));
+            }
+
+            out.dcDifference = -int16_t(mask & ~dcDiffAmplitudeComplement);
+        }
+    }
+    return out;
 }
