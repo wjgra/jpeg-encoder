@@ -125,45 +125,301 @@ jpeg::QuantisedChannelOutput jpeg::EntropyEncoder::removeRunLengthEncoding(RunLe
 }
 
 jpeg::HuffmanEncoder::HuffmanEncoder()
+    // 'Default' Huffman tables from Annex K of ITU-T81
     : dcLuminanceHuffTable{{
-            {2, 0b00},
-            {3, 0b010},
-            {3, 0b011},
-            {3, 0b100},
-            {3, 0b101},
-            {3, 0b110},
-            {4, 0b1110},
-            {5, 0b11110},
-            {6, 0b111110},
-            {7, 0b1111110},
-            {8, 0b11111110},
-            {9, 0b111111110}
-            }}
+                            {2, 0b00},
+                            {3, 0b010},
+                            {3, 0b011},
+                            {3, 0b100},
+                            {3, 0b101},
+                            {3, 0b110},
+                            {4, 0b1110},
+                            {5, 0b11110},
+                            {6, 0b111110},
+                            {7, 0b1111110},
+                            {8, 0b11111110},
+                            {9, 0b111111110}
+                           }},
+    acLuminanceHuffTable{{
+        // First index = runlength (RRRR)
+        // Second index = size (SSSS) - 1
+        // Run = 0
+        {{
+            {2,  0b00},
+            {2,  0b01},
+            {3,  0b100},
+            {4,  0b1011},
+            {5,  0b11010},
+            {7,  0b1111000},
+            {8,  0b11111000},
+            {10, 0b1111110110},
+            {16, 0b1111111110000010},
+            {16, 0b1111111110000011}
+        }},
+        // Run = 1
+        {{
+            {4,  0b1100},
+            {5,  0b11011},
+            {7,  0b1111001},
+            {9,  0b111110110},
+            {11, 0b11111110110},
+            {16, 0b1111111110000100},
+            {16, 0b1111111110000101},
+            {16, 0b1111111110000110},
+            {16, 0b1111111110000111},
+            {16, 0b1111111110001000}
+        }},
+        // Run = 2
+        {{
+            {5,  0b11100},
+            {8,  0b11111001},
+            {10, 0b1111110111},
+            {12, 0b111111110100},
+            {16, 0b1111111110001001},
+            {16, 0b1111111110001010},
+            {16, 0b1111111110001011},
+            {16, 0b1111111110001100},
+            {16, 0b1111111110001101},
+            {16, 0b1111111110001110}
+        }},
+        // Run = 3
+        {{
+            {6,  0b111010},
+            {9,  0b111110111},
+            {12, 0b111111110101},
+            {16, 0b1111111110001111},
+            {16, 0b1111111110010000},
+            {16, 0b1111111110010001},
+            {16, 0b1111111110010010},
+            {16, 0b1111111110010011},
+            {16, 0b1111111110010100},
+            {16, 0b1111111110010101}
+        }},
+        // Run = 4
+        {{
+            {6,  0b111011},
+            {10, 0b1111111000},
+            {16, 0b1111111110010110},
+            {16, 0b1111111110010111},
+            {16, 0b1111111110011000},
+            {16, 0b1111111110011001},
+            {16, 0b1111111110011010},
+            {16, 0b1111111110011011},
+            {16, 0b1111111110011100},
+            {16, 0b1111111110011101}
+        }},
+        // Run = 5
+        {{
+            {7,  0b1111010},
+            {11, 0b11111110111},
+            {16, 0b1111111110011110},
+            {16, 0b1111111110011111},
+            {16, 0b1111111110100000},
+            {16, 0b1111111110100001},
+            {16, 0b1111111110100010},
+            {16, 0b1111111110100011},
+            {16, 0b1111111110100100},
+            {16, 0b1111111110100101}
+        }},
+        // Run = 6
+        {{
+            {7,  0b1111011},
+            {12, 0b111111110110},
+            {16, 0b1111111110100110},
+            {16, 0b1111111110100111},
+            {16, 0b1111111110101000},
+            {16, 0b1111111110101001},
+            {16, 0b1111111110101010},
+            {16, 0b1111111110101011},
+            {16, 0b1111111110101100},
+            {16, 0b1111111110101101}
+        }},
+        // Run = 7
+        {{
+            {8,  0b11111010},
+            {12, 0b111111110111},
+            {16, 0b1111111110101110},
+            {16, 0b1111111110101111},
+            {16, 0b1111111110110000},
+            {16, 0b1111111110110001},
+            {16, 0b1111111110110010},
+            {16, 0b1111111110110011},
+            {16, 0b1111111110110100},
+            {16, 0b1111111110110101}
+        }},
+        // Run = 8
+        {{
+            {9,  0b111111000},
+            {15, 0b111111111000000},
+            {16, 0b1111111110110110},
+            {16, 0b1111111110110111},
+            {16, 0b1111111110111000},
+            {16, 0b1111111110111001},
+            {16, 0b1111111110111010},
+            {16, 0b1111111110111011},
+            {16, 0b1111111110111100},
+            {16, 0b1111111110111101}
+        }},
+        // Run = 9
+        {{
+            {9, 0b111111001},
+            {16, 0b1111111110111110},
+            {16, 0b1111111110111111},
+            {16, 0b1111111111000000},
+            {16, 0b1111111111000001},
+            {16, 0b1111111111000010},
+            {16, 0b1111111111000011},
+            {16, 0b1111111111000100},
+            {16, 0b1111111111000101},
+            {16, 0b1111111111000110}
+        }},
+        // Run = A
+        {{
+            {9, 0b111111010},
+            {16, 0b1111111111000111},
+            {16, 0b1111111111001000},
+            {16, 0b1111111111001001},
+            {16, 0b1111111111001010},
+            {16, 0b1111111111001011},
+            {16, 0b1111111111001100},
+            {16, 0b1111111111001101},
+            {16, 0b1111111111001110},
+            {16, 0b1111111111001111}
+        }},
+        // Run = B
+        {{
+            {10, 0b1111111001},
+            {16, 0b1111111111010000},
+            {16, 0b1111111111010001},
+            {16, 0b1111111111010010},
+            {16, 0b1111111111010011},
+            {16, 0b1111111111010100},
+            {16, 0b1111111111010101},
+            {16, 0b1111111111010110},
+            {16, 0b1111111111010111},
+            {16, 0b1111111111011000}
+        }},
+        // Run = C
+        {{
+            {10, 0b1111111010},
+            {16, 0b1111111111011001},
+            {16, 0b1111111111011010},
+            {16, 0b1111111111011011},
+            {16, 0b1111111111011100},
+            {16, 0b1111111111011101},
+            {16, 0b1111111111011110},
+            {16, 0b1111111111011111},
+            {16, 0b1111111111100000},
+            {16, 0b1111111111100001}
+        }},
+        // Run = D
+        {{
+            {11, 0b11111111000},
+            {16, 0b1111111111100010},
+            {16, 0b1111111111100011},
+            {16, 0b1111111111100100},
+            {16, 0b1111111111100101},
+            {16, 0b1111111111100110},
+            {16, 0b1111111111100111},
+            {16, 0b1111111111101000},
+            {16, 0b1111111111101001},
+            {16, 0b1111111111101010}
+        }},
+        // Run = E
+        {{
+            {16, 0b1111111111101011},
+            {16, 0b1111111111101100},
+            {16, 0b1111111111101101},
+            {16, 0b1111111111101110},
+            {16, 0b1111111111101111},
+            {16, 0b1111111111110000},
+            {16, 0b1111111111110001},
+            {16, 0b1111111111110010},
+            {16, 0b1111111111110011},
+            {16, 0b1111111111110100}
+        }},
+        // Run = F
+        {{
+            {16, 0b1111111111110101},
+            {16, 0b1111111111110110},
+            {16, 0b1111111111110111},
+            {16, 0b1111111111111000},
+            {16, 0b1111111111111001},
+            {16, 0b1111111111111010},
+            {16, 0b1111111111111011},
+            {16, 0b1111111111111100},
+            {16, 0b1111111111111101},
+            {16, 0b1111111111111110}
+        }}
+    }},
+    acLuminanceEOB{4, 0b1010},
+    acLuminanceZRL{11, 0b11111111001}
 {
     for (size_t i = 0 ; i < dcLuminanceHuffTable.size(); ++i){
         dcLuminanceHuffLookup[dcLuminanceHuffTable[i].codeWord] = i; // binary search would likely be faster
+    }
+
+    for (size_t r = 0 ; r < acLuminanceHuffTable.size() ; ++r){
+        for (size_t s = 0 ; s < acLuminanceHuffTable[0].size() ; ++s){
+            acLuminanceHuffLookup[acLuminanceHuffTable[r][s].codeWord] = {.RRRR = r, .SSSS = s};
+        }
     }
 }
 
 jpeg::EntropyChannelOutput jpeg::HuffmanEncoder::applyFinalEncoding(RunLengthEncodedChannelOutput const& input, BitStream& outputStream) const{
     // get DC code, push to stream
-    bool const dcDiffPositive = input.dcDifference > 0;
-    uint16_t const dcDiffAmplitude = dcDiffPositive ? input.dcDifference : -input.dcDifference;
-    uint8_t const categorySSSS = std::bit_width(dcDiffAmplitude);
-    uint16_t const bitMask = 0xFFFF >> (16 - categorySSSS);
-    // push huff code for category
-    outputStream.pushBits(dcLuminanceHuffTable[categorySSSS].codeWord, dcLuminanceHuffTable[categorySSSS].codeLength);
-    if (categorySSSS > 0){
-        if (dcDiffPositive){
-            outputStream.pushBits(dcDiffAmplitude, categorySSSS);
-        }
-        else{
-            outputStream.pushBits((uint16_t)(~dcDiffAmplitude), categorySSSS);
+    {
+        bool const dcDiffPositive = input.dcDifference > 0;
+        uint16_t const dcDiffAmplitude = dcDiffPositive ? input.dcDifference : -input.dcDifference;
+        uint8_t const categorySSSS = std::bit_width(dcDiffAmplitude);
+        // push huff code for category
+        outputStream.pushBits(dcLuminanceHuffTable[categorySSSS].codeWord, dcLuminanceHuffTable[categorySSSS].codeLength);
+        // push dc diff
+        if (categorySSSS > 0){
+            if (dcDiffPositive){
+                outputStream.pushBits(dcDiffAmplitude, categorySSSS);
+            }
+            else{
+                outputStream.pushBits((uint16_t)(~dcDiffAmplitude), categorySSSS);
+            }
         }
     }
 
     // get AC codes, push to stream
-    
+    for (auto& acCode : input.acCoefficients){
+        uint8_t runLengthRRRR = acCode.runLength;
+        bool const acCoeffPositive = acCode.value > 0;
+        uint16_t const acCoeffAmplitude = acCoeffPositive ? acCode.value : -acCode.value;
+        uint8_t const categorySSSS = std::bit_width(acCoeffAmplitude);
+        // push huff code for RRRRSSSS
+        HuffPair huffPair;
+        if (categorySSSS == 0){
+            switch(runLengthRRRR){
+                case 0:
+                    huffPair = acLuminanceEOB;
+                    break;
+                case 0xF:
+                    huffPair = acLuminanceZRL;
+                    break;
+                default:
+                    throw std::runtime_error("Invalid runtime encoding encountered.");
+            }
+        }
+        else{
+            huffPair = acLuminanceHuffTable[runLengthRRRR][categorySSSS - 1];
+        }
+        outputStream.pushBits(huffPair.codeWord, huffPair.codeLength);
+
+        // push ac value (same as for dc diff)
+        if (categorySSSS > 0){
+            if (acCoeffPositive){
+                outputStream.pushBits(acCoeffAmplitude, categorySSSS);
+            }
+            else{
+                outputStream.pushBits((uint16_t)(~acCoeffAmplitude), categorySSSS);
+            }
+        }
+    }
     
     /////////////////////////////////
     EntropyChannelOutput entropyOutput;
@@ -178,71 +434,119 @@ uint16_t appendBit(uint16_t input, bool bit){
 
 
 jpeg::RunLengthEncodedChannelOutput jpeg::HuffmanEncoder::removeFinalEncoding(EntropyChannelOutput const& input, BitStream const& inputStream, BitStreamReadProgress& readProgress) const{
-    auto out = input.temp;
+    RunLengthEncodedChannelOutput out;// = input.temp;
     ////
-    
-    // march forwards from current bit until huffman code encountered
-    // uint8_t currentByte = inputStream.readByte(readProgress.currentByte);
-
-    // uint8_t bitsToIgnore = 0xFFFF & (0xFFFF << (8 - readProgress.currentBit) );
-
-    // uint8_t shiftedInputByte = 0xFFFF & (currentByte << (8 - readProgress.currentBit) );
-
-
-    uint16_t candidateHuffCode = inputStream.readNextBit(readProgress);
-    candidateHuffCode = appendBit(candidateHuffCode, inputStream.readNextBit(readProgress));
-    
-    /* (candidateHuffCode << 1) | ((uint16_t)inputStream.readNextBit(readProgress)); */
-    size_t candidateBitLength = 2;
-    
-    ;
-    //[candidateHuffCode];
-
-
-    while(!(dcLuminanceHuffLookup.contains(candidateHuffCode) && (candidateBitLength == dcLuminanceHuffTable[dcLuminanceHuffLookup.at(candidateHuffCode)].codeLength))){
+    {
+        // march forwards from current bit until huffman code encountered
+        uint16_t candidateHuffCode = inputStream.readNextBit(readProgress);
         candidateHuffCode = appendBit(candidateHuffCode, inputStream.readNextBit(readProgress));
-        ++candidateBitLength;
-
-        // 
-        auto a = dcLuminanceHuffLookup.contains(6);
-        auto b = dcLuminanceHuffTable[6].codeLength;
-
-
-        if (candidateBitLength > 16){
-            throw std::runtime_error("Invalid Huffman code encountered in input JPEG data.");
-        }
-    }
-    // read dc diff and save to temp;
-
-    auto categorySSSS = dcLuminanceHuffLookup.at(candidateHuffCode);
-
-    if (categorySSSS == 0){
-        out.dcDifference = 0;
-    }
-    else{
-        uint16_t mask = 0;
-        for (int i = 0 ; i < categorySSSS ; ++i){
-                mask = appendBit(mask, 1);
-        }
-        if (inputStream.readNextBit(readProgress)){
-            // diff is positive
-            // the below is inefficient
-            uint16_t dcDiffAmplitude = 1;
-            for (int i = 1 ; i < categorySSSS ; ++i){
-                dcDiffAmplitude = appendBit(dcDiffAmplitude, inputStream.readNextBit(readProgress));
+        size_t candidateBitLength = 2;
+        while(!(dcLuminanceHuffLookup.contains(candidateHuffCode) && (candidateBitLength == dcLuminanceHuffTable[dcLuminanceHuffLookup.at(candidateHuffCode)].codeLength))){
+            candidateHuffCode = appendBit(candidateHuffCode, inputStream.readNextBit(readProgress));
+            ++candidateBitLength;
+            if (candidateBitLength > 16){
+                throw std::runtime_error("Invalid Huffman code encountered in input JPEG data.");
             }
-            out.dcDifference = int16_t(mask & dcDiffAmplitude);
+        }
+
+        // read dc diff and save to output
+        auto categorySSSS = dcLuminanceHuffLookup.at(candidateHuffCode);
+
+        if (categorySSSS == 0){
+            out.dcDifference = 0;
         }
         else{
-            // diff is negative
-            // the below is inefficient
-            uint16_t dcDiffAmplitudeComplement = 0;
-            for (int i = 1 ; i < categorySSSS ; ++i){
-                dcDiffAmplitudeComplement = appendBit(dcDiffAmplitudeComplement, inputStream.readNextBit(readProgress));
+            uint16_t mask = 0;
+            for (size_t i = 0 ; i < categorySSSS ; ++i){
+                    mask = appendBit(mask, 1);
             }
+            if (inputStream.readNextBit(readProgress)){
+                // diff is positive
+                // the below is inefficient
+                uint16_t dcDiffAmplitude = 1;
+                for (size_t i = 1 ; i < categorySSSS ; ++i){
+                    dcDiffAmplitude = appendBit(dcDiffAmplitude, inputStream.readNextBit(readProgress));
+                }
+                out.dcDifference = int16_t(mask & dcDiffAmplitude);
+            }
+            else{
+                // diff is negative
+                // the below is inefficient
+                uint16_t dcDiffAmplitudeComplement = 0;
+                for (size_t i = 1 ; i < categorySSSS ; ++i){
+                    dcDiffAmplitudeComplement = appendBit(dcDiffAmplitudeComplement, inputStream.readNextBit(readProgress));
+                }
 
-            out.dcDifference = -int16_t(mask & ~dcDiffAmplitudeComplement);
+                out.dcDifference = -int16_t(mask & ~dcDiffAmplitudeComplement);
+            }
         }
+    }
+    // Process ac coefficients
+    while (true /* add fail-safe - if EoB not encountered... */){
+        // march forwards from current bit until huffman code encountered
+        uint16_t candidateHuffCode = inputStream.readNextBit(readProgress);
+        candidateHuffCode = appendBit(candidateHuffCode, inputStream.readNextBit(readProgress));
+        size_t candidateBitLength = 2;
+
+        while(!(candidateHuffCode == acLuminanceEOB.codeWord && candidateBitLength == acLuminanceEOB.codeLength) || 
+            !(candidateHuffCode == acLuminanceZRL.codeWord && candidateBitLength == acLuminanceZRL.codeLength) || 
+            !(acLuminanceHuffLookup.contains(candidateHuffCode) 
+                && (candidateBitLength == acLuminanceHuffTable[acLuminanceHuffLookup.at(candidateHuffCode).RRRR][acLuminanceHuffLookup.at(candidateHuffCode).SSSS].codeLength))){
+
+            candidateHuffCode = appendBit(candidateHuffCode, inputStream.readNextBit(readProgress));
+            ++candidateBitLength;
+            if (candidateBitLength > 16){
+                throw std::runtime_error("Invalid Huffman code encountered in input JPEG data.");
+            }
+        }
+        if (candidateHuffCode == acLuminanceEOB.codeWord){
+
+            break;
+        }
+        else if (candidateHuffCode == acLuminanceZRL.codeWord){
+            continue;
+        }
+        // read ac value and save to output
+        auto RRRR = acLuminanceHuffLookup.at(candidateHuffCode).RRRR;
+        auto SSSS = acLuminanceHuffLookup.at(candidateHuffCode).SSSS;
+
+        if (SSSS == 0){
+            switch (RRRR){
+                case 0:
+
+                    break;
+                case 0xF:
+                    break;
+                default:
+                    throw std::runtime_error("Invalid runtime encoding encountered in input JPEG data.");
+            }
+        }
+        else{
+            uint16_t mask = 0;
+            for (size_t i = 0 ; i < SSSS ; ++i){
+                    mask = appendBit(mask, 1);
+            }
+            if (inputStream.readNextBit(readProgress)){
+                // diff is positive
+                // the below is inefficient
+                uint16_t dcDiffAmplitude = 1;
+                for (size_t i = 1 ; i < SSSS ; ++i){
+                    dcDiffAmplitude = appendBit(dcDiffAmplitude, inputStream.readNextBit(readProgress));
+                }
+                out.dcDifference = int16_t(mask & dcDiffAmplitude);
+            }
+            else{
+                // diff is negative
+                // the below is inefficient
+                uint16_t dcDiffAmplitudeComplement = 0;
+                for (size_t i = 1 ; i < SSSS ; ++i){
+                    dcDiffAmplitudeComplement = appendBit(dcDiffAmplitudeComplement, inputStream.readNextBit(readProgress));
+                }
+
+                out.dcDifference = -int16_t(mask & ~dcDiffAmplitudeComplement);
+            }
+        }
+
     }
     return out;
 }

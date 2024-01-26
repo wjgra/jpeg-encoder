@@ -60,7 +60,12 @@ namespace jpeg{
         // convert to binary tree (maps huff code to SSSS category)
         std::unordered_map<uint16_t, size_t> dcLuminanceHuffLookup;
 
-        std::array<HuffPair const, 9> acLuminanceHuffTable;
+        std::array<std::array<HuffPair, 10>, 16> acLuminanceHuffTable;
+        HuffPair acLuminanceEOB, acLuminanceZRL;
+        struct HuffIndexAC{
+            size_t RRRR, SSSS;
+        };
+        std::unordered_map<uint16_t, HuffIndexAC> acLuminanceHuffLookup;
     };
 
     /* Could implement arithmetic coding by inheriting from EntropyEncoder and implementing apply/remove FinalEncoding */
