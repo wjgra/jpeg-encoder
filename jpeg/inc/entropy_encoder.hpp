@@ -11,6 +11,7 @@
 #include <array>
 #include <bit>
 #include <unordered_map>
+#include <ranges>
 
 namespace jpeg{
 

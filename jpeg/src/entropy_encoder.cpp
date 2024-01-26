@@ -91,35 +91,48 @@ jpeg::QuantisedChannelOutput jpeg::EntropyEncoder::mapFromZigZagToGrid(Quantised
 
 jpeg::RunLengthEncodedChannelOutput jpeg::EntropyEncoder::applyRunLengthEncoding(QuantisedChannelOutput const& input, int16_t& lastDCValue) const{
     RunLengthEncodedChannelOutput output;
-    uint8_t runLength = 1;
-    int16_t coefficientOfCurrentRun = input.data[1];
-    for (size_t i = 2 ; i < BlockGrid::blockElements; ++i){
-        if (input.data[i] == coefficientOfCurrentRun){
-            ++runLength;
-        }
-        else{
-            output.acCoefficients.emplace_back(runLength, coefficientOfCurrentRun);
-            coefficientOfCurrentRun = input.data[i];
-            runLength = 1;
-        }
-    }
-    output.acCoefficients.emplace_back(runLength, coefficientOfCurrentRun);
+    // DC difference
     output.dcDifference = input.data[0] - lastDCValue;
     lastDCValue = input.data[0];
+
+    // RLE for AC coefficient leading zeroes
+    uint8_t zeroCount = 0;
+    for (auto const& coeff : input.data | std::views::drop(1)){
+        if (zeroCount == 15 || coeff != 0){
+            output.acCoefficients.emplace_back(zeroCount, coeff);
+            zeroCount = 0;
+        }
+        else{
+            ++zeroCount;
+        }
+    }
+    // Delete any trailing zeroes, replace with EoB
+    while (output.acCoefficients.back().value == 0){
+        output.acCoefficients.pop_back();
+    }
+    output.acCoefficients.emplace_back(0, 0);    
     return output;
 }
 
 jpeg::QuantisedChannelOutput jpeg::EntropyEncoder::removeRunLengthEncoding(RunLengthEncodedChannelOutput const& input, int16_t& lastDCValue) const{
     QuantisedChannelOutput output;
+    // Restore DC coefficients
     output.data[0] = input.dcDifference + lastDCValue;
     lastDCValue = output.data[0];
+    // Restore AC coefficients
     size_t blockIndex = 1; 
     for (auto acRLEData : input.acCoefficients){
         uint8_t runLength = acRLEData.runLength;
+        // Restore leading zeroes
         while (runLength-- > 0){
-            output.data[blockIndex] = acRLEData.value;
-            ++blockIndex;
+            output.data[blockIndex++] = 0;
         }
+        // Restore value
+        output.data[blockIndex++] = acRLEData.value;
+    }
+    // Zero remaining elements
+    for (size_t i = blockIndex ; i < BlockGrid::blockElements ; ++i){
+        output.data[i] = 0;
     }
     return output;
 }
