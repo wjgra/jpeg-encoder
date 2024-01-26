@@ -386,7 +386,7 @@ jpeg::EntropyChannelOutput jpeg::HuffmanEncoder::applyFinalEncoding(RunLengthEnc
     }
 
     // get AC codes, push to stream
-    for (auto& acCode : input.acCoefficients){
+    /* for (auto& acCode : input.acCoefficients){
         uint8_t runLengthRRRR = acCode.runLength;
         bool const acCoeffPositive = acCode.value > 0;
         uint16_t const acCoeffAmplitude = acCoeffPositive ? acCode.value : -acCode.value;
@@ -419,7 +419,7 @@ jpeg::EntropyChannelOutput jpeg::HuffmanEncoder::applyFinalEncoding(RunLengthEnc
                 outputStream.pushBits((uint16_t)(~acCoeffAmplitude), categorySSSS);
             }
         }
-    }
+    } */
     
     /////////////////////////////////
     EntropyChannelOutput entropyOutput;
@@ -434,7 +434,7 @@ uint16_t appendBit(uint16_t input, bool bit){
 
 
 jpeg::RunLengthEncodedChannelOutput jpeg::HuffmanEncoder::removeFinalEncoding(EntropyChannelOutput const& input, BitStream const& inputStream, BitStreamReadProgress& readProgress) const{
-    RunLengthEncodedChannelOutput out;// = input.temp;
+    RunLengthEncodedChannelOutput out = input.temp;
     ////
     {
         // march forwards from current bit until huffman code encountered
@@ -482,7 +482,8 @@ jpeg::RunLengthEncodedChannelOutput jpeg::HuffmanEncoder::removeFinalEncoding(En
         }
     }
     // Process ac coefficients
-    while (true /* add fail-safe - if EoB not encountered... */){
+    /* add fail-safe to loop - if EoB not encountered... */
+    /* while (true){
         // march forwards from current bit until huffman code encountered
         uint16_t candidateHuffCode = inputStream.readNextBit(readProgress);
         candidateHuffCode = appendBit(candidateHuffCode, inputStream.readNextBit(readProgress));
@@ -500,10 +501,11 @@ jpeg::RunLengthEncodedChannelOutput jpeg::HuffmanEncoder::removeFinalEncoding(En
             }
         }
         if (candidateHuffCode == acLuminanceEOB.codeWord){
-
+            out.acCoefficients.emplace_back(0,0);
             break;
         }
         else if (candidateHuffCode == acLuminanceZRL.codeWord){
+            out.acCoefficients.emplace_back(15,0);
             continue;
         }
         // read ac value and save to output
@@ -511,15 +513,8 @@ jpeg::RunLengthEncodedChannelOutput jpeg::HuffmanEncoder::removeFinalEncoding(En
         auto SSSS = acLuminanceHuffLookup.at(candidateHuffCode).SSSS;
 
         if (SSSS == 0){
-            switch (RRRR){
-                case 0:
-
-                    break;
-                case 0xF:
-                    break;
-                default:
-                    throw std::runtime_error("Invalid runtime encoding encountered in input JPEG data.");
-            }
+            // Only SSSS = 0 huff codes correspond to EOB and ZRL, which have already been handled
+            throw std::runtime_error("Invalid runtime encoding encountered in input JPEG data.");
         }
         else{
             uint16_t mask = 0;
@@ -527,26 +522,25 @@ jpeg::RunLengthEncodedChannelOutput jpeg::HuffmanEncoder::removeFinalEncoding(En
                     mask = appendBit(mask, 1);
             }
             if (inputStream.readNextBit(readProgress)){
-                // diff is positive
+                // coeff is positive
                 // the below is inefficient
-                uint16_t dcDiffAmplitude = 1;
+                uint16_t acCoeffAmplitude = 1;
                 for (size_t i = 1 ; i < SSSS ; ++i){
-                    dcDiffAmplitude = appendBit(dcDiffAmplitude, inputStream.readNextBit(readProgress));
+                    acCoeffAmplitude = appendBit(acCoeffAmplitude, inputStream.readNextBit(readProgress));
                 }
-                out.dcDifference = int16_t(mask & dcDiffAmplitude);
+                out.acCoefficients.emplace_back(RRRR, int16_t(mask & acCoeffAmplitude));
             }
             else{
-                // diff is negative
+                // coeff is negative
                 // the below is inefficient
-                uint16_t dcDiffAmplitudeComplement = 0;
+                uint16_t acCoeffAmplitudeComplement = 0;
                 for (size_t i = 1 ; i < SSSS ; ++i){
-                    dcDiffAmplitudeComplement = appendBit(dcDiffAmplitudeComplement, inputStream.readNextBit(readProgress));
+                    acCoeffAmplitudeComplement = appendBit(acCoeffAmplitudeComplement, inputStream.readNextBit(readProgress));
                 }
-
-                out.dcDifference = -int16_t(mask & ~dcDiffAmplitudeComplement);
+                out.acCoefficients.emplace_back(RRRR, -int16_t(mask & ~acCoeffAmplitudeComplement));
             }
         }
 
-    }
+    } */
     return out;
 }
