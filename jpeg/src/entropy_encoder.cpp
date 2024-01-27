@@ -374,7 +374,7 @@ jpeg::HuffmanEncoder::HuffmanEncoder()
 
     for (size_t r = 0 ; r < acLuminanceHuffTable.size() ; ++r){
         for (size_t s = 0 ; s < acLuminanceHuffTable[0].size() ; ++s){
-            acLuminanceHuffLookup[acLuminanceHuffTable[r][s].codeWord] = {.RRRR = r, .SSSS = s};
+            acLuminanceHuffLookup[acLuminanceHuffTable[r][s].codeWord] = {.RRRR = r, .SSSS = s + 1};
         }
     }
 }
@@ -399,7 +399,7 @@ jpeg::EntropyChannelOutput jpeg::HuffmanEncoder::applyFinalEncoding(RunLengthEnc
     }
 
     // get AC codes, push to stream
-    /* for (auto& acCode : input.acCoefficients){
+    for (auto& acCode : input.acCoefficients){
         uint8_t runLengthRRRR = acCode.runLength;
         bool const acCoeffPositive = acCode.value > 0;
         uint16_t const acCoeffAmplitude = acCoeffPositive ? acCode.value : -acCode.value;
@@ -432,7 +432,7 @@ jpeg::EntropyChannelOutput jpeg::HuffmanEncoder::applyFinalEncoding(RunLengthEnc
                 outputStream.pushBits((uint16_t)(~acCoeffAmplitude), categorySSSS);
             }
         }
-    } */
+    }
     
     /////////////////////////////////
     EntropyChannelOutput entropyOutput;
@@ -447,7 +447,7 @@ uint16_t appendBit(uint16_t input, bool bit){
 
 
 jpeg::RunLengthEncodedChannelOutput jpeg::HuffmanEncoder::removeFinalEncoding(EntropyChannelOutput const& input, BitStream const& inputStream, BitStreamReadProgress& readProgress) const{
-    RunLengthEncodedChannelOutput out = input.temp;
+    RunLengthEncodedChannelOutput out;// = input.temp;
     ////
     {
         // march forwards from current bit until huffman code encountered
@@ -496,16 +496,25 @@ jpeg::RunLengthEncodedChannelOutput jpeg::HuffmanEncoder::removeFinalEncoding(En
     }
     // Process ac coefficients
     /* add fail-safe to loop - if EoB not encountered... */
-    /* while (true){
+    while (true){
         // march forwards from current bit until huffman code encountered
         uint16_t candidateHuffCode = inputStream.readNextBit(readProgress);
         candidateHuffCode = appendBit(candidateHuffCode, inputStream.readNextBit(readProgress));
         size_t candidateBitLength = 2;
 
-        while(!(candidateHuffCode == acLuminanceEOB.codeWord && candidateBitLength == acLuminanceEOB.codeLength) || 
-            !(candidateHuffCode == acLuminanceZRL.codeWord && candidateBitLength == acLuminanceZRL.codeLength) || 
+        /* while(!(candidateHuffCode == acLuminanceEOB.codeWord && candidateBitLength == acLuminanceEOB.codeLength) && 
+            !(candidateHuffCode == acLuminanceZRL.codeWord && candidateBitLength == acLuminanceZRL.codeLength) && 
             !(acLuminanceHuffLookup.contains(candidateHuffCode) 
-                && (candidateBitLength == acLuminanceHuffTable[acLuminanceHuffLookup.at(candidateHuffCode).RRRR][acLuminanceHuffLookup.at(candidateHuffCode).SSSS].codeLength))){
+                && (candidateBitLength == acLuminanceHuffTable[acLuminanceHuffLookup.at(candidateHuffCode).RRRR][acLuminanceHuffLookup.at(candidateHuffCode).SSSS].codeLength))){ */
+        while(true){
+            if (candidateHuffCode == acLuminanceEOB.codeWord && candidateBitLength == acLuminanceEOB.codeLength)
+                break;
+            else if (candidateHuffCode == acLuminanceZRL.codeWord && candidateBitLength == acLuminanceZRL.codeLength)
+                break;
+            else if (acLuminanceHuffLookup.contains(candidateHuffCode) 
+                     && (candidateBitLength == acLuminanceHuffTable[acLuminanceHuffLookup.at(candidateHuffCode).RRRR][acLuminanceHuffLookup.at(candidateHuffCode).SSSS - 1].codeLength))
+                break;
+
 
             candidateHuffCode = appendBit(candidateHuffCode, inputStream.readNextBit(readProgress));
             ++candidateBitLength;
@@ -554,6 +563,6 @@ jpeg::RunLengthEncodedChannelOutput jpeg::HuffmanEncoder::removeFinalEncoding(En
             }
         }
 
-    } */
+    }
     return out;
 }
