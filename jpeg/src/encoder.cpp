@@ -30,6 +30,7 @@ jpeg::Encoder::Encoder(BitmapImageRGB const& inputImage,
     }
     outputImage.width = inputImage.width;
     outputImage.height = inputImage.height;
+    outputImage.fileSize = outputImage.bitData.getSize(); // temp - need to include header
 }
 
 jpeg::JPEGEncoder::JPEGEncoder(BitmapImageRGB const& inputImage, JPEGImage& outputImage, int quality) : 

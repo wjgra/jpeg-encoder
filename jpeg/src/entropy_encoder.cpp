@@ -90,6 +90,7 @@ jpeg::QuantisedChannelOutput jpeg::EntropyEncoder::mapFromZigZagToGrid(Quantised
 }
 
 jpeg::RunLengthEncodedChannelOutput jpeg::EntropyEncoder::applyRunLengthEncoding(QuantisedChannelOutput const& input, int16_t& lastDCValue) const{
+   
     RunLengthEncodedChannelOutput output;
     // DC difference
     output.dcDifference = input.data[0] - lastDCValue;
@@ -107,10 +108,10 @@ jpeg::RunLengthEncodedChannelOutput jpeg::EntropyEncoder::applyRunLengthEncoding
         }
     }
     // Delete any trailing zeroes, replace with EoB
-    while (output.acCoefficients.back().value == 0){
+    while (!output.acCoefficients.empty() &&  output.acCoefficients.back().value == 0){
         output.acCoefficients.pop_back();
     }
-    output.acCoefficients.emplace_back(0, 0);    
+    output.acCoefficients.emplace_back(0, 0);
     return output;
 }
 
@@ -121,13 +122,14 @@ jpeg::QuantisedChannelOutput jpeg::EntropyEncoder::removeRunLengthEncoding(RunLe
     lastDCValue = output.data[0];
     // Restore AC coefficients
     size_t blockIndex = 1; 
-    for (auto acRLEData : input.acCoefficients){
-        uint8_t runLength = acRLEData.runLength;
+    for (auto const& acRLEData : std::span(input.acCoefficients.begin(), input.acCoefficients.end() - 1 )){
         // Restore leading zeroes
-        while (runLength-- > 0){
+        for (size_t i = 0 ; i < acRLEData.runLength ; ++i){
+            assert(blockIndex < BlockGrid::blockElements);
             output.data[blockIndex++] = 0;
         }
         // Restore value
+        assert(blockIndex < BlockGrid::blockElements);
         output.data[blockIndex++] = acRLEData.value;
     }
     // Zero remaining elements
@@ -397,9 +399,8 @@ jpeg::EntropyChannelOutput jpeg::HuffmanEncoder::applyFinalEncoding(RunLengthEnc
             }
         }
     }
-
     // get AC codes, push to stream
-    for (auto& acCode : input.acCoefficients){
+    for (auto const& acCode : input.acCoefficients){
         uint8_t runLengthRRRR = acCode.runLength;
         bool const acCoeffPositive = acCode.value > 0;
         uint16_t const acCoeffAmplitude = acCoeffPositive ? acCode.value : -acCode.value;
@@ -433,7 +434,6 @@ jpeg::EntropyChannelOutput jpeg::HuffmanEncoder::applyFinalEncoding(RunLengthEnc
             }
         }
     }
-    
     /////////////////////////////////
     EntropyChannelOutput entropyOutput;
     entropyOutput.temp = input;

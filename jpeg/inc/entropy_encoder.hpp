@@ -12,6 +12,7 @@
 #include <bit>
 #include <unordered_map>
 #include <ranges>
+#include <span>
 
 namespace jpeg{
 

@@ -123,6 +123,8 @@ int main(int argc, char *argv[]){
     SDL_RenderCopy(renderer, outputBmpTexture, nullptr, &rightHalf);
     SDL_RenderPresent(renderer);
 
+    std::cout << "Pre: " << inputBmp.fileSize << "B\nPost: " << outputJpeg.fileSize <<"B\n";
+
     #ifndef __EMSCRIPTEN__
     while(mainLoop(window)){}
     #else

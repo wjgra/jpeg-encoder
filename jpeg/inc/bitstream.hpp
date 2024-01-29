@@ -4,6 +4,7 @@
 #include <vector>
 #include <cstdint>
 #include <cassert>
+#include <iostream>
 
 namespace jpeg{
 
@@ -43,6 +44,10 @@ namespace jpeg{
             bitsInBuffer = 0;
             stream.clear();
         }
+
+        std::uintmax_t getSize(){
+            return stream.size() + (bitsInBuffer > 0);
+        }
         static bool getBit(uint8_t input, size_t pos)
         {
             return input & (1u << (7 - pos));
@@ -50,9 +55,10 @@ namespace jpeg{
 
 
         void pushBits(uint8_t data, size_t numberOfBitsToPush){
+            // std::cout << "PB: " << int(data) << ", " << numberOfBitsToPush << "\n";
             assert(numberOfBitsToPush <= 8);
             // Remove unneeded leading bits
-            data &= 0xFF >> (8 - numberOfBitsToPush);
+            data &= uint8_t(0xFF) >> (8 - numberOfBitsToPush);
             int offset = 8 - bitsInBuffer - numberOfBitsToPush;
             if (offset >= 0){
                 // Bits fit in buffer
@@ -77,13 +83,13 @@ namespace jpeg{
         void pushBits(uint16_t data, size_t numberOfBitsToPush){
             assert(numberOfBitsToPush <= 16);
             if (numberOfBitsToPush <= 8){
-                uint8_t const u8Data = data & 0x00FF;
+                uint8_t const u8Data = data & uint8_t(0x00FF);
                 pushBits(u8Data, numberOfBitsToPush);
             }
             else{
-                uint8_t const u8LeftData = data >> 8;
+                uint8_t const u8LeftData = (data >> 8) & uint8_t(0x00FF);
                 pushBits(u8LeftData, numberOfBitsToPush - 8);
-                uint8_t const u8RightData = data & 0x00FF;
+                uint8_t const u8RightData = data & uint8_t(0x00FF);
                 pushBits(u8RightData, 8);
             }
         }
