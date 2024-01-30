@@ -32,8 +32,8 @@ jpeg::Quantiser::Quantiser(int quality){
         }
     }
 
-    /* Base chromaticity quantisation matrix as defined in Annex K of ITU T81 */ 
-    std::array<uint16_t const, BlockGrid::blockElements> baseChromaticityMatrix =
+    /* Base chrominance quantisation matrix as defined in Annex K of ITU T81 */ 
+    std::array<uint16_t const, BlockGrid::blockElements> baseChrominanceMatrix =
     {
         17,  18,  24,  47,  99,  99,  99,  99,
         18,  21,  26,  66,  99,  99,  99,  99,
@@ -44,12 +44,12 @@ jpeg::Quantiser::Quantiser(int quality){
         99,  99,  99,  99,  99,  99,  99,  99,
         99,  99,  99,  99,  99,  99,  99,  99
     };
-    for (size_t i = 0 ; i < chromaticityQuantisationMatrix.size() ; ++i){
-        chromaticityQuantisationMatrix[i] = std::floor(
-            (S * baseChromaticityMatrix[i] + 50) / 100
+    for (size_t i = 0 ; i < chrominanceQuantisationMatrix.size() ; ++i){
+        chrominanceQuantisationMatrix[i] = std::floor(
+            (S * baseChrominanceMatrix[i] + 50) / 100
         );
-        if (chromaticityQuantisationMatrix[i] == 0){
-            chromaticityQuantisationMatrix[i] = 1;
+        if (chrominanceQuantisationMatrix[i] == 0){
+            chrominanceQuantisationMatrix[i] = 1;
         }
     }
 }
@@ -63,7 +63,7 @@ jpeg::QuantisedChannelOutput jpeg::Quantiser::quantise(DCTChannelOutput const& d
     }
     else{
         for (size_t i = 0 ; i < dctInput.data.size() ; ++i){
-            output.data[i] = std::floor(0.5 + dctInput.data[i]/chromaticityQuantisationMatrix[i]);
+            output.data[i] = std::floor(0.5 + dctInput.data[i]/chrominanceQuantisationMatrix[i]);
         }
     }
     return output;
@@ -78,7 +78,7 @@ jpeg::DCTChannelOutput jpeg::Quantiser::dequantise(jpeg::QuantisedChannelOutput 
     }
     else{
         for (size_t i = 0 ; i < quantisedChannelData.data.size() ; ++i){
-            output.data[i] = quantisedChannelData.data[i] * float(chromaticityQuantisationMatrix[i]);
+            output.data[i] = quantisedChannelData.data[i] * float(chrominanceQuantisationMatrix[i]);
         }
     }
     return output;

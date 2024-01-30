@@ -19,11 +19,12 @@ namespace jpeg{
     
     struct RunLengthEncodedChannelOutput{ // Issue: consider renaming all 'output' types to 'data', or just nothing
         int16_t dcDifference;
-        struct RunLengthEncodedACCoefficients{
-            uint8_t runLength;
+        struct RunLengthEncodedACCoefficient{
+            size_t runLength;
             int16_t value;
-        }; // these values are processed into RRRRSSSS in the huffman stage
-        std::vector<RunLengthEncodedACCoefficients> acCoefficients;
+            bool operator==(RunLengthEncodedACCoefficient const& other) const = default;
+        };
+        std::vector<RunLengthEncodedACCoefficient> acCoefficients;
     };
 
     class EntropyEncoder{
@@ -65,10 +66,17 @@ namespace jpeg{
             std::unordered_map<uint16_t, HuffIndexAC> acLookup;
         };
         HuffmanTable luminanceHuffTable;
-        // HuffmanTable chromaticityHuffTable;
-    };
-
-    /* Could implement arithmetic coding by inheriting from EntropyEncoder and implementing apply/remove FinalEncoding */
+        // HuffmanTable chrominanceHuffTable;
+        void pushHuffmanCodedDCDifferenceToStream(int16_t dcDifference, BitStream& outputStream, HuffmanTable const& huffTable) const;
+        void pushHuffmanCodedACCoefficientToStream(RunLengthEncodedChannelOutput::RunLengthEncodedACCoefficient acCoeff, BitStream& outputStream, HuffmanTable const& huffTable) const;
+        uint16_t static appendBit(uint16_t input, bool bit){return (input << 1) | uint16_t(bit);}
+        int16_t extractDCDifferenceFromStream(BitStream const& inputStream, BitStreamReadProgress& readProgress, HuffmanTable const& huffTable) const;
+        RunLengthEncodedChannelOutput::RunLengthEncodedACCoefficient extractACCoefficientFromStream(BitStream const& inputStream, BitStreamReadProgress& readProgress, HuffmanTable const& huffTable) const;
+    
+    };  
+    /* To be implemented! */
+    /* class ArithmeticEncoder : public EntropyEncoder{
+    }; */
 }
 
 #endif

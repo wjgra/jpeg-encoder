@@ -13,6 +13,8 @@ jpeg::QuantisedChannelOutput jpeg::EntropyEncoder::decode(BitStream const& input
 }
 
 jpeg::QuantisedChannelOutput jpeg::EntropyEncoder::mapFromGridToZigZag(QuantisedChannelOutput const& input) const{
+    // Issue: since block size is known at compile-time, would be faster to compute indices once then re-use them.
+    // A similar approach can then be used for inversion.
     QuantisedChannelOutput output;
     // Add first element of block
     size_t xPos = 0, yPos = 0;
@@ -90,7 +92,6 @@ jpeg::QuantisedChannelOutput jpeg::EntropyEncoder::mapFromZigZagToGrid(Quantised
 }
 
 jpeg::RunLengthEncodedChannelOutput jpeg::EntropyEncoder::applyRunLengthEncoding(QuantisedChannelOutput const& input, int16_t& lastDCValue) const{
-   
     RunLengthEncodedChannelOutput output;
     // DC difference
     output.dcDifference = input.data[0] - lastDCValue;
@@ -376,63 +377,80 @@ jpeg::HuffmanEncoder::HuffmanEncoder()
                     .acZeroRunLength{11, 0b11111111001},
                     .acLookup{}
     }
-    // Issue: to include chromaticity tables
+    // Issue: to include chrominance tables
+    // Issue 2: implement frequency analysis to generate tailored Huffman tables
 {
+    // Populate Huffman lookup tables
     for (size_t i = 0 ; i < luminanceHuffTable.dcTable.size(); ++i){
         luminanceHuffTable.dcLookup[luminanceHuffTable.dcTable[i].codeWord] = i;
     }
-
     for (size_t r = 0 ; r < luminanceHuffTable.acTable.size() ; ++r){
         for (size_t s = 0 ; s < luminanceHuffTable.acTable[0].size() ; ++s){
             luminanceHuffTable.acLookup[luminanceHuffTable.acTable[r][s].codeWord] = {.RRRR = r, .SSSS = s + 1};
         }
     }
+    /* To do: chrominance lookup */
 }
 
 void jpeg::HuffmanEncoder::applyFinalEncoding(RunLengthEncodedChannelOutput const& input, BitStream& outputStream) const{
-    // Lookup DC code, push to stream
-    {
-        bool const dcDiffPositive = input.dcDifference > 0;
-        uint16_t const dcDiffAmplitude = dcDiffPositive ? input.dcDifference : -input.dcDifference;
-        uint8_t const categorySSSS = std::bit_width(dcDiffAmplitude);
-        // push huff code for category
-        outputStream.pushBits(luminanceHuffTable.dcTable[categorySSSS].codeWord, luminanceHuffTable.dcTable[categorySSSS].codeLength);
-        // push dc diff
-        if (categorySSSS > 0){
-            if (dcDiffPositive){
-                outputStream.pushBits(dcDiffAmplitude, categorySSSS);
-            }
-            else{
-                outputStream.pushBits((uint16_t)(~dcDiffAmplitude), categorySSSS);
-            }
+    pushHuffmanCodedDCDifferenceToStream(input.dcDifference, outputStream, luminanceHuffTable);
+    for (auto const& acCoeff : input.acCoefficients){
+        pushHuffmanCodedACCoefficientToStream(acCoeff, outputStream, luminanceHuffTable);
+    }
+}
+
+jpeg::RunLengthEncodedChannelOutput jpeg::HuffmanEncoder::removeFinalEncoding(BitStream const& inputStream, BitStreamReadProgress& readProgress) const{
+    RunLengthEncodedChannelOutput out;
+    out.dcDifference = extractDCDifferenceFromStream(inputStream, readProgress, luminanceHuffTable);
+    do{
+        out.acCoefficients.emplace_back(extractACCoefficientFromStream(inputStream, readProgress, luminanceHuffTable));
+    } while (out.acCoefficients.back() != RunLengthEncodedChannelOutput::RunLengthEncodedACCoefficient{.runLength = 0, .value = 0});
+    return out;
+}
+
+/* Look up the Huffman code corresponding to the DC difference category, and push it to the output stream along with the amplitude*/
+void jpeg::HuffmanEncoder::pushHuffmanCodedDCDifferenceToStream(int16_t dcDifference, BitStream& outputStream, HuffmanTable const& huffTable) const{
+    bool const dcDiffPositive = dcDifference > 0;
+    uint16_t const dcDiffAmplitude = dcDiffPositive ? dcDifference : -dcDifference;
+    uint8_t const categorySSSS = std::bit_width(dcDiffAmplitude);
+    // Push huff code for category SSSS
+    outputStream.pushBits(huffTable.dcTable[categorySSSS].codeWord, huffTable.dcTable[categorySSSS].codeLength);
+    // Push DC diff amplitude
+    if (categorySSSS > 0){
+        if (dcDiffPositive){
+            outputStream.pushBits(dcDiffAmplitude, categorySSSS);
+        }
+        else{
+            outputStream.pushBits((uint16_t)(~dcDiffAmplitude), categorySSSS);
         }
     }
-    // get AC codes, push to stream
-    for (auto const& acCode : input.acCoefficients){
-        uint8_t runLengthRRRR = acCode.runLength;
-        bool const acCoeffPositive = acCode.value > 0;
-        uint16_t const acCoeffAmplitude = acCoeffPositive ? acCode.value : -acCode.value;
+}
+
+void jpeg::HuffmanEncoder::pushHuffmanCodedACCoefficientToStream(RunLengthEncodedChannelOutput::RunLengthEncodedACCoefficient acCoeff, BitStream& outputStream, HuffmanTable const& huffTable) const{
+        uint8_t runLengthRRRR = acCoeff.runLength;
+        bool const acCoeffPositive = acCoeff.value > 0;
+        uint16_t const acCoeffAmplitude = acCoeffPositive ? acCoeff.value : -acCoeff.value;
         uint8_t const categorySSSS = std::bit_width(acCoeffAmplitude);
-        // push huff code for RRRRSSSS
+        // Push huff code for RRRRSSSS
         HuffmanTable::HuffmanCode huffPair;
         if (categorySSSS == 0){
             switch(runLengthRRRR){
                 case 0:
-                    huffPair = luminanceHuffTable.acEndOfBlock;
+                    huffPair = huffTable.acEndOfBlock;
                     break;
                 case 0xF:
-                    huffPair = luminanceHuffTable.acZeroRunLength;
+                    huffPair = huffTable.acZeroRunLength;
                     break;
                 default:
                     throw std::runtime_error("Invalid runtime encoding encountered.");
             }
         }
         else{
-            huffPair = luminanceHuffTable.acTable[runLengthRRRR][categorySSSS - 1];
+            huffPair = huffTable.acTable[runLengthRRRR][categorySSSS - 1];
         }
         outputStream.pushBits(huffPair.codeWord, huffPair.codeLength);
 
-        // push ac value (same as for dc diff)
+        // Push AC value (same as for DC diff)
         if (categorySSSS > 0){
             if (acCoeffPositive){
                 outputStream.pushBits(acCoeffAmplitude, categorySSSS);
@@ -441,117 +459,106 @@ void jpeg::HuffmanEncoder::applyFinalEncoding(RunLengthEncodedChannelOutput cons
                 outputStream.pushBits((uint16_t)(~acCoeffAmplitude), categorySSSS);
             }
         }
-    }
 }
 
-// util
-uint16_t appendBit(uint16_t input, bool bit){
-    return (input << 1) | uint16_t(bit);
-}
-
-
-jpeg::RunLengthEncodedChannelOutput jpeg::HuffmanEncoder::removeFinalEncoding(BitStream const& inputStream, BitStreamReadProgress& readProgress) const{
-    RunLengthEncodedChannelOutput out;
-    {
-        // March forwards from current bit until huffman code encountered
-        uint16_t candidateHuffCode = inputStream.readNextBit(readProgress);
+int16_t jpeg::HuffmanEncoder::extractDCDifferenceFromStream(BitStream const& inputStream, BitStreamReadProgress& readProgress, HuffmanTable const& huffTable) const{
+    // March forwards from current bit until Huffman code encountered
+    uint16_t candidateHuffCode = inputStream.readNextBit(readProgress);
+    candidateHuffCode = appendBit(candidateHuffCode, inputStream.readNextBit(readProgress));
+    size_t candidateBitLength = 2;
+    while(!(huffTable.dcLookup.contains(candidateHuffCode) && (candidateBitLength == huffTable.dcTable[huffTable.dcLookup.at(candidateHuffCode)].codeLength))){
         candidateHuffCode = appendBit(candidateHuffCode, inputStream.readNextBit(readProgress));
-        size_t candidateBitLength = 2;
-        while(!(luminanceHuffTable.dcLookup.contains(candidateHuffCode) && (candidateBitLength == luminanceHuffTable.dcTable[luminanceHuffTable.dcLookup.at(candidateHuffCode)].codeLength))){
-            candidateHuffCode = appendBit(candidateHuffCode, inputStream.readNextBit(readProgress));
-            ++candidateBitLength;
-            if (candidateBitLength > 16){
-                throw std::runtime_error("Invalid Huffman code encountered in input JPEG data.");
-            }
-        }
-
-        // Read DC diff and save to output
-        auto categorySSSS = luminanceHuffTable.dcLookup.at(candidateHuffCode);
-        if (categorySSSS == 0){
-            out.dcDifference = 0;
-        }
-        else{
-            uint16_t mask = 0;
-            for (size_t i = 0 ; i < categorySSSS ; ++i){
-                    mask = appendBit(mask, 1);
-            }
-            if (inputStream.readNextBit(readProgress)){
-                // DC diff is positive
-                uint16_t dcDiffAmplitude = 1;
-                for (size_t i = 1 ; i < categorySSSS ; ++i){
-                    dcDiffAmplitude = appendBit(dcDiffAmplitude, inputStream.readNextBit(readProgress));
-                }
-                out.dcDifference = int16_t(mask & dcDiffAmplitude);
-            }
-            else{
-                // DC diff is negative
-                uint16_t dcDiffAmplitudeComplement = 0;
-                for (size_t i = 1 ; i < categorySSSS ; ++i){
-                    dcDiffAmplitudeComplement = appendBit(dcDiffAmplitudeComplement, inputStream.readNextBit(readProgress));
-                }
-
-                out.dcDifference = -int16_t(mask & ~dcDiffAmplitudeComplement);
-            }
+        ++candidateBitLength;
+        if (candidateBitLength > 16){
+            throw std::runtime_error("Invalid Huffman code encountered in input JPEG data.");
         }
     }
-    // Process AC coefficients
-    while (true){
-        // March forwards from current bit until Huffman code encountered, starting with first two bits
-        HuffmanTable::HuffmanCode candidateHuffCode{.codeLength = 2, .codeWord = 0};
-        candidateHuffCode.codeWord = appendBit(candidateHuffCode.codeWord, inputStream.readNextBit(readProgress));
-        candidateHuffCode.codeWord = appendBit(candidateHuffCode.codeWord, inputStream.readNextBit(readProgress));
-        
-        while(candidateHuffCode != luminanceHuffTable.acEndOfBlock && candidateHuffCode != luminanceHuffTable.acZeroRunLength){
-            if (luminanceHuffTable.acLookup.contains(candidateHuffCode.codeWord)){
-                auto tempHuffIndex = luminanceHuffTable.acLookup.at(candidateHuffCode.codeWord);
-                if (candidateHuffCode.codeLength == luminanceHuffTable.acTable[tempHuffIndex.RRRR][tempHuffIndex.SSSS - 1].codeLength){
-                    break;
-                }
-            }
-            candidateHuffCode.codeWord = appendBit(candidateHuffCode.codeWord, inputStream.readNextBit(readProgress));
-            ++candidateHuffCode.codeLength;
-            if (candidateHuffCode.codeLength > 16){
-                throw std::runtime_error("Invalid Huffman code encountered in input JPEG data.");
-            }
-        }
-        if (candidateHuffCode.codeWord == luminanceHuffTable.acEndOfBlock.codeWord){
-            out.acCoefficients.emplace_back(0,0);
-            break;
-        }
-        else if (candidateHuffCode.codeWord  == luminanceHuffTable.acZeroRunLength.codeWord){
-            out.acCoefficients.emplace_back(15,0);
-            continue;
-        }
-        // Read AC value and save to output
-        auto RRRR = luminanceHuffTable.acLookup.at(candidateHuffCode.codeWord).RRRR;
-        auto SSSS = luminanceHuffTable.acLookup.at(candidateHuffCode.codeWord).SSSS;
 
-        if (SSSS == 0){
-            // Only SSSS = 0 Huffman codes correspond to EOB and ZRL, which have already been handled
-            throw std::runtime_error("Invalid runtime encoding encountered in input JPEG data.");
+    // Read DC diff and save to output
+    auto categorySSSS = huffTable.dcLookup.at(candidateHuffCode);
+    if (categorySSSS == 0){
+        return 0;
+    }
+    else{
+        uint16_t mask = 0;
+        for (size_t i = 0 ; i < categorySSSS ; ++i){
+                mask = appendBit(mask, 1);
+        }
+        if (inputStream.readNextBit(readProgress)){
+            // DC diff is positive
+            uint16_t dcDiffAmplitude = 1;
+            for (size_t i = 1 ; i < categorySSSS ; ++i){
+                dcDiffAmplitude = appendBit(dcDiffAmplitude, inputStream.readNextBit(readProgress));
+            }
+            return int16_t(mask & dcDiffAmplitude);
         }
         else{
-            uint16_t mask = 0;
-            for (size_t i = 0 ; i < SSSS ; ++i){
-                    mask = appendBit(mask, 1);
+            // DC diff is negative
+            uint16_t dcDiffAmplitudeComplement = 0;
+            for (size_t i = 1 ; i < categorySSSS ; ++i){
+                dcDiffAmplitudeComplement = appendBit(dcDiffAmplitudeComplement, inputStream.readNextBit(readProgress));
             }
-            if (inputStream.readNextBit(readProgress)){
-                // coeff is positive
-                uint16_t acCoeffAmplitude = 1;
-                for (size_t i = 1 ; i < SSSS ; ++i){
-                    acCoeffAmplitude = appendBit(acCoeffAmplitude, inputStream.readNextBit(readProgress));
-                }
-                out.acCoefficients.emplace_back(RRRR, int16_t(mask & acCoeffAmplitude));
-            }
-            else{
-                // coeff is negative
-                uint16_t acCoeffAmplitudeComplement = 0;
-                for (size_t i = 1 ; i < SSSS ; ++i){
-                    acCoeffAmplitudeComplement = appendBit(acCoeffAmplitudeComplement, inputStream.readNextBit(readProgress));
-                }
-                out.acCoefficients.emplace_back(RRRR, -int16_t(mask & ~acCoeffAmplitudeComplement));
-            }
+
+            return -int16_t(mask & ~dcDiffAmplitudeComplement);
         }
     }
-    return out;
 }
+
+jpeg::RunLengthEncodedChannelOutput::RunLengthEncodedACCoefficient jpeg::HuffmanEncoder::extractACCoefficientFromStream(BitStream const& inputStream, BitStreamReadProgress& readProgress, HuffmanTable const& huffTable) const{
+    // March forwards from current bit until Huffman code encountered, starting with first two bits
+    HuffmanTable::HuffmanCode candidateHuffCode{.codeLength = 2, .codeWord = 0};
+    candidateHuffCode.codeWord = appendBit(candidateHuffCode.codeWord, inputStream.readNextBit(readProgress));
+    candidateHuffCode.codeWord = appendBit(candidateHuffCode.codeWord, inputStream.readNextBit(readProgress));
+    
+    while(candidateHuffCode != huffTable.acEndOfBlock && candidateHuffCode != huffTable.acZeroRunLength){
+        if (huffTable.acLookup.contains(candidateHuffCode.codeWord)){
+            auto tempHuffIndex = huffTable.acLookup.at(candidateHuffCode.codeWord);
+            if (candidateHuffCode.codeLength == huffTable.acTable[tempHuffIndex.RRRR][tempHuffIndex.SSSS - 1].codeLength){
+                break;
+            }
+        }
+        candidateHuffCode.codeWord = appendBit(candidateHuffCode.codeWord, inputStream.readNextBit(readProgress));
+        ++candidateHuffCode.codeLength;
+        if (candidateHuffCode.codeLength > 16){
+            throw std::runtime_error("Invalid Huffman code encountered in input JPEG data.");
+        }
+    }
+    if (candidateHuffCode.codeWord == huffTable.acEndOfBlock.codeWord){
+        return RunLengthEncodedChannelOutput::RunLengthEncodedACCoefficient{.runLength = 0, .value = 0};
+        
+    }
+    else if (candidateHuffCode.codeWord  == huffTable.acZeroRunLength.codeWord){
+        return RunLengthEncodedChannelOutput::RunLengthEncodedACCoefficient{.runLength = 15, .value = 0};
+    }
+    // Read AC value and save to output
+    auto RRRR = huffTable.acLookup.at(candidateHuffCode.codeWord).RRRR;
+    auto SSSS = huffTable.acLookup.at(candidateHuffCode.codeWord).SSSS;
+
+    if (SSSS == 0){
+        // Only SSSS = 0 Huffman codes correspond to EOB and ZRL, which have already been handled
+        throw std::runtime_error("Invalid runtime encoding encountered in input JPEG data.");
+    }
+    else{
+        uint16_t mask = 0;
+        for (size_t i = 0 ; i < SSSS ; ++i){
+                mask = appendBit(mask, 1);
+        }
+        if (inputStream.readNextBit(readProgress)){
+            // coeff is positive
+            uint16_t acCoeffAmplitude = 1;
+            for (size_t i = 1 ; i < SSSS ; ++i){
+                acCoeffAmplitude = appendBit(acCoeffAmplitude, inputStream.readNextBit(readProgress));
+            }
+            return RunLengthEncodedChannelOutput::RunLengthEncodedACCoefficient{.runLength = RRRR, .value = int16_t(mask & acCoeffAmplitude)};
+        }
+        else{
+            // coeff is negative
+            uint16_t acCoeffAmplitudeComplement = 0;
+            for (size_t i = 1 ; i < SSSS ; ++i){
+                acCoeffAmplitudeComplement = appendBit(acCoeffAmplitudeComplement, inputStream.readNextBit(readProgress));
+            }
+            return RunLengthEncodedChannelOutput::RunLengthEncodedACCoefficient{.runLength = RRRR, .value = int16_t(-int16_t(mask & ~acCoeffAmplitudeComplement))};
+        }
+    }
+}
+    

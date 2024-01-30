@@ -18,7 +18,7 @@ namespace jpeg{
         DCTChannelOutput dequantise(QuantisedChannelOutput const& quantisedInput, bool useLuminanceMatrix) const;
     private:
         std::array<uint16_t, BlockGrid::blockElements> luminanceQuantisationMatrix;
-        std::array<uint16_t, BlockGrid::blockElements> chromaticityQuantisationMatrix;
+        std::array<uint16_t, BlockGrid::blockElements> chrominanceQuantisationMatrix;
     };
 }
 #endif

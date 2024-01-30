@@ -30,8 +30,6 @@ namespace jpeg{
         }
     };
 
-
-
     /* A stream to which up to 16 bits can be pushed at a time.
        A vector of bytes representing the stream is retrievable as output. */
     class BitStream{
@@ -109,26 +107,6 @@ namespace jpeg{
             bool output = getBit(currentByte, progress.currentBit);
             progress.advanceBit();
             return output;
-        }
-
-        /* bool readNextBits(BitStreamReadProgress& progress, size_t numberOfBits) const{
-            uint8_t currentByte = readByte(progress.currentByte);
-            bool output = getBit(currentByte, progress.currentBit);
-            progress.advanceBit();
-            return output;
-        } */
-
-
-
-       /*  void finishStream(){
-            stream.push_back(buffer);
-            bitsInBuffer = 0;
-        } */
-
-        std::vector<uint8_t> getStream() const{
-            auto temp = stream;
-            temp.push_back(buffer);
-            return temp;
         }
     private:
         uint8_t buffer;

@@ -91,7 +91,7 @@ jpeg::BlockGrid::Block jpeg::RGBToYCbCrMapper::reverseMapping(ColourMappedBlock 
     return output;
 }
 
-/* Y is a luminance component, Cb and Cr are chromaticity components */
+/* Y is a luminance component, Cb and Cr are chrominance components */
 bool jpeg::RGBToYCbCrMapper::componentIsLuminance(uint8_t component) const{
     return component == 0;
 }
