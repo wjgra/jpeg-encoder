@@ -29,24 +29,24 @@ namespace jpeg{
 
     class EntropyEncoder{
     public:
-        void encode(QuantisedChannelOutput const& input, int16_t& lastDCValue, BitStream& outputStream) const;
-        QuantisedChannelOutput decode(BitStream const& inputStream, BitStreamReadProgress& readProgress, int16_t& lastDCValue) const;
+        void encode(QuantisedChannelOutput const& input, int16_t& lastDCValue, BitStream& outputStream, bool isLuminanceComponent) const;
+        QuantisedChannelOutput decode(BitStream const& inputStream, BitStreamReadProgress& readProgress, int16_t& lastDCValue, bool isLuminanceComponent) const;
     private:
         QuantisedChannelOutput mapFromGridToZigZag(QuantisedChannelOutput const& input) const;
         QuantisedChannelOutput mapFromZigZagToGrid(QuantisedChannelOutput const& input) const;
         RunLengthEncodedChannelOutput applyRunLengthEncoding(QuantisedChannelOutput const& input, int16_t& lastDCValue) const;
         QuantisedChannelOutput removeRunLengthEncoding(RunLengthEncodedChannelOutput const& input, int16_t& lastDCValue) const;
     protected:
-        virtual void applyFinalEncoding(RunLengthEncodedChannelOutput const& input, BitStream& outputStream) const = 0;
-        virtual RunLengthEncodedChannelOutput removeFinalEncoding(BitStream const& inputStream, BitStreamReadProgress& readProgress) const = 0;
+        virtual void applyFinalEncoding(RunLengthEncodedChannelOutput const& input, BitStream& outputStream, bool isLuminanceComponent) const = 0;
+        virtual RunLengthEncodedChannelOutput removeFinalEncoding(BitStream const& inputStream, BitStreamReadProgress& readProgress, bool isLuminanceComponent) const = 0;
     };
 
     class HuffmanEncoder : public EntropyEncoder{
     public:
         HuffmanEncoder();
     protected:
-        void applyFinalEncoding(RunLengthEncodedChannelOutput const& input, BitStream& outputStream) const override;
-        RunLengthEncodedChannelOutput removeFinalEncoding(BitStream const& inputStream, BitStreamReadProgress& readProgress) const override;
+        void applyFinalEncoding(RunLengthEncodedChannelOutput const& input, BitStream& outputStream, bool isLuminanceComponent) const override;
+        RunLengthEncodedChannelOutput removeFinalEncoding(BitStream const& inputStream, BitStreamReadProgress& readProgress, bool isLuminanceComponent) const override;
     private:
         struct HuffmanTable{
             struct HuffmanCode{
@@ -66,7 +66,7 @@ namespace jpeg{
             std::unordered_map<uint16_t, HuffIndexAC> acLookup;
         };
         HuffmanTable luminanceHuffTable;
-        // HuffmanTable chrominanceHuffTable;
+        HuffmanTable chrominanceHuffTable;
         void pushHuffmanCodedDCDifferenceToStream(int16_t dcDifference, BitStream& outputStream, HuffmanTable const& huffTable) const;
         void pushHuffmanCodedACCoefficientToStream(RunLengthEncodedChannelOutput::RunLengthEncodedACCoefficient acCoeff, BitStream& outputStream, HuffmanTable const& huffTable) const;
         uint16_t static appendBit(uint16_t input, bool bit){return (input << 1) | uint16_t(bit);}

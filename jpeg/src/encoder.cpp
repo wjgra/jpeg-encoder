@@ -20,7 +20,7 @@ jpeg::Encoder::Encoder(BitmapImageRGB const& inputImage,
         for (size_t channel = 0 ; channel < 3 ; ++channel){
             DCTChannelOutput dctData = discreteCosineTransformer.transform(colourMappedBlock.data[channel]);
             QuantisedChannelOutput quantisedOutput = quantiser.quantise(dctData, colourMapper.isLuminanceComponent(channel));
-            entropyEncoder.encode(quantisedOutput, lastDCValues[channel], outputImage.compressedImageData);
+            entropyEncoder.encode(quantisedOutput, lastDCValues[channel], outputImage.compressedImageData, colourMapper.isLuminanceComponent(channel));
         }
     }
     outputImage.width = inputImage.width;
