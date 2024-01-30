@@ -123,7 +123,10 @@ int main(int argc, char *argv[]){
     SDL_RenderCopy(renderer, outputBmpTexture, nullptr, &rightHalf);
     SDL_RenderPresent(renderer);
 
-    std::cout << "Pre: " << inputBmp.fileSize << "B\nPost: " << outputJpeg.fileSize <<"B\n";
+    std::cout << "BMP size: " << inputBmp.fileSize << "B | JPEG size: " << outputJpeg.fileSize 
+              << "B | Compression ratio: " << (outputJpeg.fileSize == 0 ? std::string("N/A") : std::to_string(double(inputBmp.fileSize)/double(outputJpeg.fileSize))) 
+              << " | Encode time: " << std::to_string(timeToEncode) + std::string(" ms | Decode time: ") << std::to_string(timeToDecode)
+              << " ms\n";
 
     #ifndef __EMSCRIPTEN__
     while(mainLoop(window)){}

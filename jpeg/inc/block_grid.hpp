@@ -66,6 +66,7 @@ class InputBlockGrid : public BlockGrid{
         OutputBlockGrid(uint16_t width, uint16_t height);
         void processNextBlock(BlockGrid::Block const& inputBlock);
         BitmapImageRGB getBitmapRGB() const;
+        bool atEnd() const;
     private:
         BitmapImageRGB::PixelData* getBlockPtr();
     };

@@ -14,16 +14,16 @@ namespace jpeg{
     struct JPEGImage{
         uint16_t width, height;
         std::uintmax_t fileSize;
-        struct BlockData{
+/*         struct BlockData{
             struct ScanData{
                 RunLengthEncodedChannelOutput tempRLE; // one block-channel
             };
             std::array<ScanData, 3> components;
         };
-        std::vector<BlockData> data;
+        std::vector<BlockData> data; */
 
 
-        BitStream bitData;
+        BitStream compressedImageData;
     };
 };
 

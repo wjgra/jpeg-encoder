@@ -1,13 +1,13 @@
 #include "..\inc\entropy_encoder.hpp"
 
-jpeg::EntropyChannelOutput jpeg::EntropyEncoder::encode(QuantisedChannelOutput const& input, int16_t& lastDCValue, BitStream& outputStream) const{
+void jpeg::EntropyEncoder::encode(QuantisedChannelOutput const& input, int16_t& lastDCValue, BitStream& outputStream) const{
     QuantisedChannelOutput zigZagMappedChannelData = mapFromGridToZigZag(input);
     RunLengthEncodedChannelOutput runLengthEncodedChannelData = applyRunLengthEncoding(zigZagMappedChannelData, lastDCValue);
-    return applyFinalEncoding(runLengthEncodedChannelData, outputStream);
+    applyFinalEncoding(runLengthEncodedChannelData, outputStream);
 }
 
-jpeg::QuantisedChannelOutput jpeg::EntropyEncoder::decode(EntropyChannelOutput const& input, BitStream const& inputStream, BitStreamReadProgress& readProgress, int16_t& lastDCValue) const{
-    RunLengthEncodedChannelOutput runLengthEncodedChannelData = removeFinalEncoding(input, inputStream, readProgress);
+jpeg::QuantisedChannelOutput jpeg::EntropyEncoder::decode(BitStream const& inputStream, BitStreamReadProgress& readProgress, int16_t& lastDCValue) const{
+    RunLengthEncodedChannelOutput runLengthEncodedChannelData = removeFinalEncoding(inputStream, readProgress);
     QuantisedChannelOutput zigZagMappedChannelData = removeRunLengthEncoding(runLengthEncodedChannelData, lastDCValue);
     return mapFromZigZagToGrid(zigZagMappedChannelData);
 }
@@ -140,8 +140,9 @@ jpeg::QuantisedChannelOutput jpeg::EntropyEncoder::removeRunLengthEncoding(RunLe
 }
 
 jpeg::HuffmanEncoder::HuffmanEncoder()
-    // 'Default' Huffman tables from Annex K of ITU-T81
-    : dcLuminanceHuffTable{{
+    // 'Default' Huffman tables for luminance components from Annex K of ITU-T81
+    : luminanceHuffTable{
+                    .dcTable{{
                             {2, 0b00},
                             {3, 0b010},
                             {3, 0b011},
@@ -155,240 +156,247 @@ jpeg::HuffmanEncoder::HuffmanEncoder()
                             {8, 0b11111110},
                             {9, 0b111111110}
                            }},
-    acLuminanceHuffTable{{
-        // First index = runlength (RRRR)
-        // Second index = size (SSSS) - 1
-        // Run = 0
-        {{
-            {2,  0b00},
-            {2,  0b01},
-            {3,  0b100},
-            {4,  0b1011},
-            {5,  0b11010},
-            {7,  0b1111000},
-            {8,  0b11111000},
-            {10, 0b1111110110},
-            {16, 0b1111111110000010},
-            {16, 0b1111111110000011}
-        }},
-        // Run = 1
-        {{
-            {4,  0b1100},
-            {5,  0b11011},
-            {7,  0b1111001},
-            {9,  0b111110110},
-            {11, 0b11111110110},
-            {16, 0b1111111110000100},
-            {16, 0b1111111110000101},
-            {16, 0b1111111110000110},
-            {16, 0b1111111110000111},
-            {16, 0b1111111110001000}
-        }},
-        // Run = 2
-        {{
-            {5,  0b11100},
-            {8,  0b11111001},
-            {10, 0b1111110111},
-            {12, 0b111111110100},
-            {16, 0b1111111110001001},
-            {16, 0b1111111110001010},
-            {16, 0b1111111110001011},
-            {16, 0b1111111110001100},
-            {16, 0b1111111110001101},
-            {16, 0b1111111110001110}
-        }},
-        // Run = 3
-        {{
-            {6,  0b111010},
-            {9,  0b111110111},
-            {12, 0b111111110101},
-            {16, 0b1111111110001111},
-            {16, 0b1111111110010000},
-            {16, 0b1111111110010001},
-            {16, 0b1111111110010010},
-            {16, 0b1111111110010011},
-            {16, 0b1111111110010100},
-            {16, 0b1111111110010101}
-        }},
-        // Run = 4
-        {{
-            {6,  0b111011},
-            {10, 0b1111111000},
-            {16, 0b1111111110010110},
-            {16, 0b1111111110010111},
-            {16, 0b1111111110011000},
-            {16, 0b1111111110011001},
-            {16, 0b1111111110011010},
-            {16, 0b1111111110011011},
-            {16, 0b1111111110011100},
-            {16, 0b1111111110011101}
-        }},
-        // Run = 5
-        {{
-            {7,  0b1111010},
-            {11, 0b11111110111},
-            {16, 0b1111111110011110},
-            {16, 0b1111111110011111},
-            {16, 0b1111111110100000},
-            {16, 0b1111111110100001},
-            {16, 0b1111111110100010},
-            {16, 0b1111111110100011},
-            {16, 0b1111111110100100},
-            {16, 0b1111111110100101}
-        }},
-        // Run = 6
-        {{
-            {7,  0b1111011},
-            {12, 0b111111110110},
-            {16, 0b1111111110100110},
-            {16, 0b1111111110100111},
-            {16, 0b1111111110101000},
-            {16, 0b1111111110101001},
-            {16, 0b1111111110101010},
-            {16, 0b1111111110101011},
-            {16, 0b1111111110101100},
-            {16, 0b1111111110101101}
-        }},
-        // Run = 7
-        {{
-            {8,  0b11111010},
-            {12, 0b111111110111},
-            {16, 0b1111111110101110},
-            {16, 0b1111111110101111},
-            {16, 0b1111111110110000},
-            {16, 0b1111111110110001},
-            {16, 0b1111111110110010},
-            {16, 0b1111111110110011},
-            {16, 0b1111111110110100},
-            {16, 0b1111111110110101}
-        }},
-        // Run = 8
-        {{
-            {9,  0b111111000},
-            {15, 0b111111111000000},
-            {16, 0b1111111110110110},
-            {16, 0b1111111110110111},
-            {16, 0b1111111110111000},
-            {16, 0b1111111110111001},
-            {16, 0b1111111110111010},
-            {16, 0b1111111110111011},
-            {16, 0b1111111110111100},
-            {16, 0b1111111110111101}
-        }},
-        // Run = 9
-        {{
-            {9, 0b111111001},
-            {16, 0b1111111110111110},
-            {16, 0b1111111110111111},
-            {16, 0b1111111111000000},
-            {16, 0b1111111111000001},
-            {16, 0b1111111111000010},
-            {16, 0b1111111111000011},
-            {16, 0b1111111111000100},
-            {16, 0b1111111111000101},
-            {16, 0b1111111111000110}
-        }},
-        // Run = A
-        {{
-            {9, 0b111111010},
-            {16, 0b1111111111000111},
-            {16, 0b1111111111001000},
-            {16, 0b1111111111001001},
-            {16, 0b1111111111001010},
-            {16, 0b1111111111001011},
-            {16, 0b1111111111001100},
-            {16, 0b1111111111001101},
-            {16, 0b1111111111001110},
-            {16, 0b1111111111001111}
-        }},
-        // Run = B
-        {{
-            {10, 0b1111111001},
-            {16, 0b1111111111010000},
-            {16, 0b1111111111010001},
-            {16, 0b1111111111010010},
-            {16, 0b1111111111010011},
-            {16, 0b1111111111010100},
-            {16, 0b1111111111010101},
-            {16, 0b1111111111010110},
-            {16, 0b1111111111010111},
-            {16, 0b1111111111011000}
-        }},
-        // Run = C
-        {{
-            {10, 0b1111111010},
-            {16, 0b1111111111011001},
-            {16, 0b1111111111011010},
-            {16, 0b1111111111011011},
-            {16, 0b1111111111011100},
-            {16, 0b1111111111011101},
-            {16, 0b1111111111011110},
-            {16, 0b1111111111011111},
-            {16, 0b1111111111100000},
-            {16, 0b1111111111100001}
-        }},
-        // Run = D
-        {{
-            {11, 0b11111111000},
-            {16, 0b1111111111100010},
-            {16, 0b1111111111100011},
-            {16, 0b1111111111100100},
-            {16, 0b1111111111100101},
-            {16, 0b1111111111100110},
-            {16, 0b1111111111100111},
-            {16, 0b1111111111101000},
-            {16, 0b1111111111101001},
-            {16, 0b1111111111101010}
-        }},
-        // Run = E
-        {{
-            {16, 0b1111111111101011},
-            {16, 0b1111111111101100},
-            {16, 0b1111111111101101},
-            {16, 0b1111111111101110},
-            {16, 0b1111111111101111},
-            {16, 0b1111111111110000},
-            {16, 0b1111111111110001},
-            {16, 0b1111111111110010},
-            {16, 0b1111111111110011},
-            {16, 0b1111111111110100}
-        }},
-        // Run = F
-        {{
-            {16, 0b1111111111110101},
-            {16, 0b1111111111110110},
-            {16, 0b1111111111110111},
-            {16, 0b1111111111111000},
-            {16, 0b1111111111111001},
-            {16, 0b1111111111111010},
-            {16, 0b1111111111111011},
-            {16, 0b1111111111111100},
-            {16, 0b1111111111111101},
-            {16, 0b1111111111111110}
-        }}
-    }},
-    acLuminanceEOB{4, 0b1010},
-    acLuminanceZRL{11, 0b11111111001}
+
+                    .dcLookup{},
+
+                    .acTable{{
+                        // First index = runlength (RRRR)
+                        // Second index = size (SSSS) - 1
+                        // Run = 0
+                        {{
+                            {2,  0b00},
+                            {2,  0b01},
+                            {3,  0b100},
+                            {4,  0b1011},
+                            {5,  0b11010},
+                            {7,  0b1111000},
+                            {8,  0b11111000},
+                            {10, 0b1111110110},
+                            {16, 0b1111111110000010},
+                            {16, 0b1111111110000011}
+                        }},
+                        // Run = 1
+                        {{
+                            {4,  0b1100},
+                            {5,  0b11011},
+                            {7,  0b1111001},
+                            {9,  0b111110110},
+                            {11, 0b11111110110},
+                            {16, 0b1111111110000100},
+                            {16, 0b1111111110000101},
+                            {16, 0b1111111110000110},
+                            {16, 0b1111111110000111},
+                            {16, 0b1111111110001000}
+                        }},
+                        // Run = 2
+                        {{
+                            {5,  0b11100},
+                            {8,  0b11111001},
+                            {10, 0b1111110111},
+                            {12, 0b111111110100},
+                            {16, 0b1111111110001001},
+                            {16, 0b1111111110001010},
+                            {16, 0b1111111110001011},
+                            {16, 0b1111111110001100},
+                            {16, 0b1111111110001101},
+                            {16, 0b1111111110001110}
+                        }},
+                        // Run = 3
+                        {{
+                            {6,  0b111010},
+                            {9,  0b111110111},
+                            {12, 0b111111110101},
+                            {16, 0b1111111110001111},
+                            {16, 0b1111111110010000},
+                            {16, 0b1111111110010001},
+                            {16, 0b1111111110010010},
+                            {16, 0b1111111110010011},
+                            {16, 0b1111111110010100},
+                            {16, 0b1111111110010101}
+                        }},
+                        // Run = 4
+                        {{
+                            {6,  0b111011},
+                            {10, 0b1111111000},
+                            {16, 0b1111111110010110},
+                            {16, 0b1111111110010111},
+                            {16, 0b1111111110011000},
+                            {16, 0b1111111110011001},
+                            {16, 0b1111111110011010},
+                            {16, 0b1111111110011011},
+                            {16, 0b1111111110011100},
+                            {16, 0b1111111110011101}
+                        }},
+                        // Run = 5
+                        {{
+                            {7,  0b1111010},
+                            {11, 0b11111110111},
+                            {16, 0b1111111110011110},
+                            {16, 0b1111111110011111},
+                            {16, 0b1111111110100000},
+                            {16, 0b1111111110100001},
+                            {16, 0b1111111110100010},
+                            {16, 0b1111111110100011},
+                            {16, 0b1111111110100100},
+                            {16, 0b1111111110100101}
+                        }},
+                        // Run = 6
+                        {{
+                            {7,  0b1111011},
+                            {12, 0b111111110110},
+                            {16, 0b1111111110100110},
+                            {16, 0b1111111110100111},
+                            {16, 0b1111111110101000},
+                            {16, 0b1111111110101001},
+                            {16, 0b1111111110101010},
+                            {16, 0b1111111110101011},
+                            {16, 0b1111111110101100},
+                            {16, 0b1111111110101101}
+                        }},
+                        // Run = 7
+                        {{
+                            {8,  0b11111010},
+                            {12, 0b111111110111},
+                            {16, 0b1111111110101110},
+                            {16, 0b1111111110101111},
+                            {16, 0b1111111110110000},
+                            {16, 0b1111111110110001},
+                            {16, 0b1111111110110010},
+                            {16, 0b1111111110110011},
+                            {16, 0b1111111110110100},
+                            {16, 0b1111111110110101}
+                        }},
+                        // Run = 8
+                        {{
+                            {9,  0b111111000},
+                            {15, 0b111111111000000},
+                            {16, 0b1111111110110110},
+                            {16, 0b1111111110110111},
+                            {16, 0b1111111110111000},
+                            {16, 0b1111111110111001},
+                            {16, 0b1111111110111010},
+                            {16, 0b1111111110111011},
+                            {16, 0b1111111110111100},
+                            {16, 0b1111111110111101}
+                        }},
+                        // Run = 9
+                        {{
+                            {9, 0b111111001},
+                            {16, 0b1111111110111110},
+                            {16, 0b1111111110111111},
+                            {16, 0b1111111111000000},
+                            {16, 0b1111111111000001},
+                            {16, 0b1111111111000010},
+                            {16, 0b1111111111000011},
+                            {16, 0b1111111111000100},
+                            {16, 0b1111111111000101},
+                            {16, 0b1111111111000110}
+                        }},
+                        // Run = A
+                        {{
+                            {9, 0b111111010},
+                            {16, 0b1111111111000111},
+                            {16, 0b1111111111001000},
+                            {16, 0b1111111111001001},
+                            {16, 0b1111111111001010},
+                            {16, 0b1111111111001011},
+                            {16, 0b1111111111001100},
+                            {16, 0b1111111111001101},
+                            {16, 0b1111111111001110},
+                            {16, 0b1111111111001111}
+                        }},
+                        // Run = B
+                        {{
+                            {10, 0b1111111001},
+                            {16, 0b1111111111010000},
+                            {16, 0b1111111111010001},
+                            {16, 0b1111111111010010},
+                            {16, 0b1111111111010011},
+                            {16, 0b1111111111010100},
+                            {16, 0b1111111111010101},
+                            {16, 0b1111111111010110},
+                            {16, 0b1111111111010111},
+                            {16, 0b1111111111011000}
+                        }},
+                        // Run = C
+                        {{
+                            {10, 0b1111111010},
+                            {16, 0b1111111111011001},
+                            {16, 0b1111111111011010},
+                            {16, 0b1111111111011011},
+                            {16, 0b1111111111011100},
+                            {16, 0b1111111111011101},
+                            {16, 0b1111111111011110},
+                            {16, 0b1111111111011111},
+                            {16, 0b1111111111100000},
+                            {16, 0b1111111111100001}
+                        }},
+                        // Run = D
+                        {{
+                            {11, 0b11111111000},
+                            {16, 0b1111111111100010},
+                            {16, 0b1111111111100011},
+                            {16, 0b1111111111100100},
+                            {16, 0b1111111111100101},
+                            {16, 0b1111111111100110},
+                            {16, 0b1111111111100111},
+                            {16, 0b1111111111101000},
+                            {16, 0b1111111111101001},
+                            {16, 0b1111111111101010}
+                        }},
+                        // Run = E
+                        {{
+                            {16, 0b1111111111101011},
+                            {16, 0b1111111111101100},
+                            {16, 0b1111111111101101},
+                            {16, 0b1111111111101110},
+                            {16, 0b1111111111101111},
+                            {16, 0b1111111111110000},
+                            {16, 0b1111111111110001},
+                            {16, 0b1111111111110010},
+                            {16, 0b1111111111110011},
+                            {16, 0b1111111111110100}
+                        }},
+                        // Run = F
+                        {{
+                            {16, 0b1111111111110101},
+                            {16, 0b1111111111110110},
+                            {16, 0b1111111111110111},
+                            {16, 0b1111111111111000},
+                            {16, 0b1111111111111001},
+                            {16, 0b1111111111111010},
+                            {16, 0b1111111111111011},
+                            {16, 0b1111111111111100},
+                            {16, 0b1111111111111101},
+                            {16, 0b1111111111111110}
+                        }}
+                    }},
+
+                    .acEndOfBlock{4, 0b1010},
+                    .acZeroRunLength{11, 0b11111111001},
+                    .acLookup{}
+    }
+    // Issue: to include chromaticity tables
 {
-    for (size_t i = 0 ; i < dcLuminanceHuffTable.size(); ++i){
-        dcLuminanceHuffLookup[dcLuminanceHuffTable[i].codeWord] = i; // binary search would likely be faster
+    for (size_t i = 0 ; i < luminanceHuffTable.dcTable.size(); ++i){
+        luminanceHuffTable.dcLookup[luminanceHuffTable.dcTable[i].codeWord] = i;
     }
 
-    for (size_t r = 0 ; r < acLuminanceHuffTable.size() ; ++r){
-        for (size_t s = 0 ; s < acLuminanceHuffTable[0].size() ; ++s){
-            acLuminanceHuffLookup[acLuminanceHuffTable[r][s].codeWord] = {.RRRR = r, .SSSS = s + 1};
+    for (size_t r = 0 ; r < luminanceHuffTable.acTable.size() ; ++r){
+        for (size_t s = 0 ; s < luminanceHuffTable.acTable[0].size() ; ++s){
+            luminanceHuffTable.acLookup[luminanceHuffTable.acTable[r][s].codeWord] = {.RRRR = r, .SSSS = s + 1};
         }
     }
 }
 
-jpeg::EntropyChannelOutput jpeg::HuffmanEncoder::applyFinalEncoding(RunLengthEncodedChannelOutput const& input, BitStream& outputStream) const{
-    // get DC code, push to stream
+void jpeg::HuffmanEncoder::applyFinalEncoding(RunLengthEncodedChannelOutput const& input, BitStream& outputStream) const{
+    // Lookup DC code, push to stream
     {
         bool const dcDiffPositive = input.dcDifference > 0;
         uint16_t const dcDiffAmplitude = dcDiffPositive ? input.dcDifference : -input.dcDifference;
         uint8_t const categorySSSS = std::bit_width(dcDiffAmplitude);
         // push huff code for category
-        outputStream.pushBits(dcLuminanceHuffTable[categorySSSS].codeWord, dcLuminanceHuffTable[categorySSSS].codeLength);
+        outputStream.pushBits(luminanceHuffTable.dcTable[categorySSSS].codeWord, luminanceHuffTable.dcTable[categorySSSS].codeLength);
         // push dc diff
         if (categorySSSS > 0){
             if (dcDiffPositive){
@@ -406,21 +414,21 @@ jpeg::EntropyChannelOutput jpeg::HuffmanEncoder::applyFinalEncoding(RunLengthEnc
         uint16_t const acCoeffAmplitude = acCoeffPositive ? acCode.value : -acCode.value;
         uint8_t const categorySSSS = std::bit_width(acCoeffAmplitude);
         // push huff code for RRRRSSSS
-        HuffPair huffPair;
+        HuffmanTable::HuffmanCode huffPair;
         if (categorySSSS == 0){
             switch(runLengthRRRR){
                 case 0:
-                    huffPair = acLuminanceEOB;
+                    huffPair = luminanceHuffTable.acEndOfBlock;
                     break;
                 case 0xF:
-                    huffPair = acLuminanceZRL;
+                    huffPair = luminanceHuffTable.acZeroRunLength;
                     break;
                 default:
                     throw std::runtime_error("Invalid runtime encoding encountered.");
             }
         }
         else{
-            huffPair = acLuminanceHuffTable[runLengthRRRR][categorySSSS - 1];
+            huffPair = luminanceHuffTable.acTable[runLengthRRRR][categorySSSS - 1];
         }
         outputStream.pushBits(huffPair.codeWord, huffPair.codeLength);
 
@@ -434,10 +442,6 @@ jpeg::EntropyChannelOutput jpeg::HuffmanEncoder::applyFinalEncoding(RunLengthEnc
             }
         }
     }
-    /////////////////////////////////
-    EntropyChannelOutput entropyOutput;
-    entropyOutput.temp = input;
-    return entropyOutput;
 }
 
 // util
@@ -446,15 +450,14 @@ uint16_t appendBit(uint16_t input, bool bit){
 }
 
 
-jpeg::RunLengthEncodedChannelOutput jpeg::HuffmanEncoder::removeFinalEncoding(EntropyChannelOutput const& input, BitStream const& inputStream, BitStreamReadProgress& readProgress) const{
-    RunLengthEncodedChannelOutput out;// = input.temp;
-    ////
+jpeg::RunLengthEncodedChannelOutput jpeg::HuffmanEncoder::removeFinalEncoding(BitStream const& inputStream, BitStreamReadProgress& readProgress) const{
+    RunLengthEncodedChannelOutput out;
     {
-        // march forwards from current bit until huffman code encountered
+        // March forwards from current bit until huffman code encountered
         uint16_t candidateHuffCode = inputStream.readNextBit(readProgress);
         candidateHuffCode = appendBit(candidateHuffCode, inputStream.readNextBit(readProgress));
         size_t candidateBitLength = 2;
-        while(!(dcLuminanceHuffLookup.contains(candidateHuffCode) && (candidateBitLength == dcLuminanceHuffTable[dcLuminanceHuffLookup.at(candidateHuffCode)].codeLength))){
+        while(!(luminanceHuffTable.dcLookup.contains(candidateHuffCode) && (candidateBitLength == luminanceHuffTable.dcTable[luminanceHuffTable.dcLookup.at(candidateHuffCode)].codeLength))){
             candidateHuffCode = appendBit(candidateHuffCode, inputStream.readNextBit(readProgress));
             ++candidateBitLength;
             if (candidateBitLength > 16){
@@ -462,8 +465,8 @@ jpeg::RunLengthEncodedChannelOutput jpeg::HuffmanEncoder::removeFinalEncoding(En
             }
         }
 
-        // read dc diff and save to output
-        auto categorySSSS = dcLuminanceHuffLookup.at(candidateHuffCode);
+        // Read DC diff and save to output
+        auto categorySSSS = luminanceHuffTable.dcLookup.at(candidateHuffCode);
 
         if (categorySSSS == 0){
             out.dcDifference = 0;
@@ -475,7 +478,6 @@ jpeg::RunLengthEncodedChannelOutput jpeg::HuffmanEncoder::removeFinalEncoding(En
             }
             if (inputStream.readNextBit(readProgress)){
                 // diff is positive
-                // the below is inefficient
                 uint16_t dcDiffAmplitude = 1;
                 for (size_t i = 1 ; i < categorySSSS ; ++i){
                     dcDiffAmplitude = appendBit(dcDiffAmplitude, inputStream.readNextBit(readProgress));
@@ -484,7 +486,6 @@ jpeg::RunLengthEncodedChannelOutput jpeg::HuffmanEncoder::removeFinalEncoding(En
             }
             else{
                 // diff is negative
-                // the below is inefficient
                 uint16_t dcDiffAmplitudeComplement = 0;
                 for (size_t i = 1 ; i < categorySSSS ; ++i){
                     dcDiffAmplitudeComplement = appendBit(dcDiffAmplitudeComplement, inputStream.readNextBit(readProgress));
@@ -494,48 +495,40 @@ jpeg::RunLengthEncodedChannelOutput jpeg::HuffmanEncoder::removeFinalEncoding(En
             }
         }
     }
-    // Process ac coefficients
-    /* add fail-safe to loop - if EoB not encountered... */
+    // Process AC coefficients
     while (true){
-        // march forwards from current bit until huffman code encountered
-        uint16_t candidateHuffCode = inputStream.readNextBit(readProgress);
-        candidateHuffCode = appendBit(candidateHuffCode, inputStream.readNextBit(readProgress));
-        size_t candidateBitLength = 2;
-
-        /* while(!(candidateHuffCode == acLuminanceEOB.codeWord && candidateBitLength == acLuminanceEOB.codeLength) && 
-            !(candidateHuffCode == acLuminanceZRL.codeWord && candidateBitLength == acLuminanceZRL.codeLength) && 
-            !(acLuminanceHuffLookup.contains(candidateHuffCode) 
-                && (candidateBitLength == acLuminanceHuffTable[acLuminanceHuffLookup.at(candidateHuffCode).RRRR][acLuminanceHuffLookup.at(candidateHuffCode).SSSS].codeLength))){ */
-        while(true){
-            if (candidateHuffCode == acLuminanceEOB.codeWord && candidateBitLength == acLuminanceEOB.codeLength)
-                break;
-            else if (candidateHuffCode == acLuminanceZRL.codeWord && candidateBitLength == acLuminanceZRL.codeLength)
-                break;
-            else if (acLuminanceHuffLookup.contains(candidateHuffCode) 
-                     && (candidateBitLength == acLuminanceHuffTable[acLuminanceHuffLookup.at(candidateHuffCode).RRRR][acLuminanceHuffLookup.at(candidateHuffCode).SSSS - 1].codeLength))
-                break;
-
-
-            candidateHuffCode = appendBit(candidateHuffCode, inputStream.readNextBit(readProgress));
-            ++candidateBitLength;
-            if (candidateBitLength > 16){
+        // March forwards from current bit until Huffman code encountered, starting with first two bits
+        HuffmanTable::HuffmanCode candidateHuffCode{.codeLength = 2, .codeWord = 0};
+        candidateHuffCode.codeWord = appendBit(candidateHuffCode.codeWord, inputStream.readNextBit(readProgress));
+        candidateHuffCode.codeWord = appendBit(candidateHuffCode.codeWord, inputStream.readNextBit(readProgress));
+        
+        while(candidateHuffCode != luminanceHuffTable.acEndOfBlock && candidateHuffCode != luminanceHuffTable.acZeroRunLength){
+            if (luminanceHuffTable.acLookup.contains(candidateHuffCode.codeWord)){
+                auto tempHuffIndex = luminanceHuffTable.acLookup.at(candidateHuffCode.codeWord);
+                if (candidateHuffCode.codeLength == luminanceHuffTable.acTable[tempHuffIndex.RRRR][tempHuffIndex.SSSS - 1].codeLength){
+                    break;
+                }
+            }
+            candidateHuffCode.codeWord = appendBit(candidateHuffCode.codeWord, inputStream.readNextBit(readProgress));
+            ++candidateHuffCode.codeLength;
+            if (candidateHuffCode.codeLength > 16){
                 throw std::runtime_error("Invalid Huffman code encountered in input JPEG data.");
             }
         }
-        if (candidateHuffCode == acLuminanceEOB.codeWord){
+        if (candidateHuffCode.codeWord == luminanceHuffTable.acEndOfBlock.codeWord){
             out.acCoefficients.emplace_back(0,0);
             break;
         }
-        else if (candidateHuffCode == acLuminanceZRL.codeWord){
+        else if (candidateHuffCode.codeWord  == luminanceHuffTable.acZeroRunLength.codeWord){
             out.acCoefficients.emplace_back(15,0);
             continue;
         }
-        // read ac value and save to output
-        auto RRRR = acLuminanceHuffLookup.at(candidateHuffCode).RRRR;
-        auto SSSS = acLuminanceHuffLookup.at(candidateHuffCode).SSSS;
+        // Read AC value and save to output
+        auto RRRR = luminanceHuffTable.acLookup.at(candidateHuffCode.codeWord).RRRR;
+        auto SSSS = luminanceHuffTable.acLookup.at(candidateHuffCode.codeWord).SSSS;
 
         if (SSSS == 0){
-            // Only SSSS = 0 huff codes correspond to EOB and ZRL, which have already been handled
+            // Only SSSS = 0 Huffman codes correspond to EOB and ZRL, which have already been handled
             throw std::runtime_error("Invalid runtime encoding encountered in input JPEG data.");
         }
         else{
@@ -545,7 +538,6 @@ jpeg::RunLengthEncodedChannelOutput jpeg::HuffmanEncoder::removeFinalEncoding(En
             }
             if (inputStream.readNextBit(readProgress)){
                 // coeff is positive
-                // the below is inefficient
                 uint16_t acCoeffAmplitude = 1;
                 for (size_t i = 1 ; i < SSSS ; ++i){
                     acCoeffAmplitude = appendBit(acCoeffAmplitude, inputStream.readNextBit(readProgress));
@@ -554,7 +546,6 @@ jpeg::RunLengthEncodedChannelOutput jpeg::HuffmanEncoder::removeFinalEncoding(En
             }
             else{
                 // coeff is negative
-                // the below is inefficient
                 uint16_t acCoeffAmplitudeComplement = 0;
                 for (size_t i = 1 ; i < SSSS ; ++i){
                     acCoeffAmplitudeComplement = appendBit(acCoeffAmplitudeComplement, inputStream.readNextBit(readProgress));
@@ -562,7 +553,6 @@ jpeg::RunLengthEncodedChannelOutput jpeg::HuffmanEncoder::removeFinalEncoding(En
                 out.acCoefficients.emplace_back(RRRR, -int16_t(mask & ~acCoeffAmplitudeComplement));
             }
         }
-
     }
     return out;
 }

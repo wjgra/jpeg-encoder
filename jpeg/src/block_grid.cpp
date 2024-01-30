@@ -125,6 +125,10 @@ jpeg::BitmapImageRGB jpeg::OutputBlockGrid::getBitmapRGB() const{
     return output;
 }
 
+bool jpeg::OutputBlockGrid::atEnd() const{
+    return currentBlock == blockGrid.end();
+}
+
 jpeg::BitmapImageRGB::PixelData* jpeg::OutputBlockGrid::getBlockPtr(){
     return output.data.data() + (currentBlock.getDataPtr() - blockGrid.begin().getDataPtr());
 }
