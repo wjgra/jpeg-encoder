@@ -161,12 +161,19 @@ extern "C" {
         std::cout << filename << "(" << mime_type << ") uploaded by user\n";
         lastUploadedImage = jpeg::BitmapImageRGB(reinterpret_cast<uint8_t const*>(buffer.data()), buffer.size());
         emscripten_cancel_main_loop();
-        encodeDecodeImage(lastUploadedImage, *reinterpret_cast<int*>(args));
+        int* mQuality = reinterpret_cast<int*>(args);
+        encodeDecodeImage(lastUploadedImage, *mQuality);
+        delete mQuality;
         emscripten_set_main_loop_arg(&mainLoopCallback, &window, 0, true);
     }
 
     EMSCRIPTEN_KEEPALIVE void encodeDecodeImageUpload(int quality){
-        emscripten_browser_file::upload(".bmp", uploadedImageCallback, reinterpret_cast<void*>(&quality));
+        int* arg = new int(quality);
+        emscripten_browser_file::upload(".bmp", uploadedImageCallback, reinterpret_cast<void*>(arg));
+        //emscripten_browser_file::upload(".bmp", uploadedImageCallback, reinterpret_cast<void*>(&quality));
+    }
+
+    EMSCRIPTEN_KEEPALIVE void downloadEncodedImage(){
     }
 }
 
