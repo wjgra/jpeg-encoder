@@ -16,7 +16,7 @@ jpeg::Decoder::Decoder(JPEGImage inputImage,
         ColourMappedBlock thisBlock;
         for (size_t channel = 0 ; channel < 3 ; ++channel){
             QuantisedChannelOutput quantisedData = entropyEncoder.decode(inputImage.compressedImageData, readProgress, lastDCValues[channel]);
-            DCTChannelOutput dctData = quantiser.dequantise(quantisedData);
+            DCTChannelOutput dctData = quantiser.dequantise(quantisedData, colourMapper.isLuminanceComponent(channel));
             ColourMappedBlock::ChannelBlock colourMappedChannelData = discreteCosineTransformer.inverseTransform(dctData);
             thisBlock.data[channel] = colourMappedChannelData;
         }

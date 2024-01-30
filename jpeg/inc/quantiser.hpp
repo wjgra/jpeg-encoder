@@ -14,10 +14,11 @@ namespace jpeg{
     class Quantiser{
     public:
         Quantiser(int quality = 50);
-        QuantisedChannelOutput quantise(DCTChannelOutput const& dctInput) const;
-        DCTChannelOutput dequantise(QuantisedChannelOutput const& quantisedInput) const;
+        QuantisedChannelOutput quantise(DCTChannelOutput const& dctInput, bool useLuminanceMatrix) const;
+        DCTChannelOutput dequantise(QuantisedChannelOutput const& quantisedInput, bool useLuminanceMatrix) const;
     private:
-        std::array<uint16_t, BlockGrid::blockElements> quantisationMatrix;
+        std::array<uint16_t, BlockGrid::blockElements> luminanceQuantisationMatrix;
+        std::array<uint16_t, BlockGrid::blockElements> chromaticityQuantisationMatrix;
     };
 }
 #endif

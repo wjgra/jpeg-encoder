@@ -467,7 +467,6 @@ jpeg::RunLengthEncodedChannelOutput jpeg::HuffmanEncoder::removeFinalEncoding(Bi
 
         // Read DC diff and save to output
         auto categorySSSS = luminanceHuffTable.dcLookup.at(candidateHuffCode);
-
         if (categorySSSS == 0){
             out.dcDifference = 0;
         }
@@ -477,7 +476,7 @@ jpeg::RunLengthEncodedChannelOutput jpeg::HuffmanEncoder::removeFinalEncoding(Bi
                     mask = appendBit(mask, 1);
             }
             if (inputStream.readNextBit(readProgress)){
-                // diff is positive
+                // DC diff is positive
                 uint16_t dcDiffAmplitude = 1;
                 for (size_t i = 1 ; i < categorySSSS ; ++i){
                     dcDiffAmplitude = appendBit(dcDiffAmplitude, inputStream.readNextBit(readProgress));
@@ -485,7 +484,7 @@ jpeg::RunLengthEncodedChannelOutput jpeg::HuffmanEncoder::removeFinalEncoding(Bi
                 out.dcDifference = int16_t(mask & dcDiffAmplitude);
             }
             else{
-                // diff is negative
+                // DC diff is negative
                 uint16_t dcDiffAmplitudeComplement = 0;
                 for (size_t i = 1 ; i < categorySSSS ; ++i){
                     dcDiffAmplitudeComplement = appendBit(dcDiffAmplitudeComplement, inputStream.readNextBit(readProgress));

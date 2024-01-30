@@ -9,8 +9,9 @@ jpeg::Quantiser::Quantiser(int quality){
     else if (quality > 100){
         quality = 100;
     }
-    // Base IJG quantisation matrix
-    std::array<uint16_t const, BlockGrid::blockElements> baseMatrix =
+    
+    /* Base luminance quantisation matrix as defined in Annex K of ITU T81 */ 
+    std::array<uint16_t const, BlockGrid::blockElements> baseLuminanceMatrix =
     {
         16,  11,  10,  16,  24,  40,  51,  61,
         12,  12,  14,  19,  26,  58,  60,  55,
@@ -22,28 +23,63 @@ jpeg::Quantiser::Quantiser(int quality){
         72,  92,  95,  98,  112, 100, 103, 99
     };
     float S = (quality < 50) ? 5000/quality : 200 - 2 * quality;
-    for (size_t i = 0 ; i < quantisationMatrix.size() ; ++i){
-        quantisationMatrix[i] = std::floor(
-            (S * baseMatrix[i] + 50) / 100
+    for (size_t i = 0 ; i < luminanceQuantisationMatrix.size() ; ++i){
+        luminanceQuantisationMatrix[i] = std::floor(
+            (S * baseLuminanceMatrix[i] + 50) / 100
         );
-        if (quantisationMatrix[i] == 0){
-            quantisationMatrix[i] = 1;
+        if (luminanceQuantisationMatrix[i] == 0){
+            luminanceQuantisationMatrix[i] = 1;
+        }
+    }
+
+    /* Base chromaticity quantisation matrix as defined in Annex K of ITU T81 */ 
+    std::array<uint16_t const, BlockGrid::blockElements> baseChromaticityMatrix =
+    {
+        17,  18,  24,  47,  99,  99,  99,  99,
+        18,  21,  26,  66,  99,  99,  99,  99,
+        24,  26,  56,  99,  99,  99,  99,  99,
+        47,  66,  99,  99,  99,  99,  99,  99,
+        99,  99,  99,  99,  99,  99,  99,  99,
+        99,  99,  99,  99,  99,  99,  99,  99,
+        99,  99,  99,  99,  99,  99,  99,  99,
+        99,  99,  99,  99,  99,  99,  99,  99
+    };
+    for (size_t i = 0 ; i < chromaticityQuantisationMatrix.size() ; ++i){
+        chromaticityQuantisationMatrix[i] = std::floor(
+            (S * baseChromaticityMatrix[i] + 50) / 100
+        );
+        if (chromaticityQuantisationMatrix[i] == 0){
+            chromaticityQuantisationMatrix[i] = 1;
         }
     }
 }
 
-jpeg::QuantisedChannelOutput jpeg::Quantiser::quantise(DCTChannelOutput const& dctInput) const{
+jpeg::QuantisedChannelOutput jpeg::Quantiser::quantise(DCTChannelOutput const& dctInput, bool useLuminanceMatrix) const{
     QuantisedChannelOutput output;
-    for (size_t i = 0 ; i < dctInput.data.size() ; ++i){
-        output.data[i] = std::floor(0.5 + dctInput.data[i]/quantisationMatrix[i]);
+    if (useLuminanceMatrix){
+        for (size_t i = 0 ; i < dctInput.data.size() ; ++i){
+            output.data[i] = std::floor(0.5 + dctInput.data[i]/luminanceQuantisationMatrix[i]);
+        }
+    }
+    else{
+        for (size_t i = 0 ; i < dctInput.data.size() ; ++i){
+            output.data[i] = std::floor(0.5 + dctInput.data[i]/chromaticityQuantisationMatrix[i]);
+        }
     }
     return output;
 }
 
-jpeg::DCTChannelOutput jpeg::Quantiser::dequantise(jpeg::QuantisedChannelOutput const& quantisedChannelData) const{
+jpeg::DCTChannelOutput jpeg::Quantiser::dequantise(jpeg::QuantisedChannelOutput const& quantisedChannelData, bool useLuminanceMatrix) const{
     DCTChannelOutput output;
-    for (size_t i = 0 ; i < quantisedChannelData.data.size() ; ++i){
-        output.data[i] = quantisedChannelData.data[i] * float(quantisationMatrix[i]);
+    if (useLuminanceMatrix){
+        for (size_t i = 0 ; i < quantisedChannelData.data.size() ; ++i){
+            output.data[i] = quantisedChannelData.data[i] * float(luminanceQuantisationMatrix[i]);
+        }
+    }
+    else{
+        for (size_t i = 0 ; i < quantisedChannelData.data.size() ; ++i){
+            output.data[i] = quantisedChannelData.data[i] * float(chromaticityQuantisationMatrix[i]);
+        }
     }
     return output;
 }

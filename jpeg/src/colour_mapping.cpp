@@ -8,6 +8,11 @@ jpeg::BlockGrid::Block jpeg::ColourMapper::unmap(jpeg::ColourMappedBlock const& 
     return reverseMapping(inputBlock);
 }
 
+bool jpeg::ColourMapper::isLuminanceComponent(uint8_t component) const{
+    assert(component <= 3);
+    return componentIsLuminance(component);
+}
+
 jpeg::ColourMappedBlock jpeg::RGBToRGBMapper::applyMapping(jpeg::BlockGrid::Block const& inputBlock) const{
     ColourMappedBlock output;
     // Passthrough mapping
@@ -28,6 +33,12 @@ jpeg::BlockGrid::Block jpeg::RGBToRGBMapper::reverseMapping(ColourMappedBlock co
         output.data[i].b = inputBlock.data[2][i];
     }
     return output;
+}
+
+/* R, G and B are each luminance components */
+bool jpeg::RGBToRGBMapper::componentIsLuminance(uint8_t component) const{
+    (void)component;
+    return true;
 }
 
 jpeg::ColourMappedBlock jpeg::RGBToYCbCrMapper::applyMapping(jpeg::BlockGrid::Block const& inputBlock) const{
@@ -78,4 +89,9 @@ jpeg::BlockGrid::Block jpeg::RGBToYCbCrMapper::reverseMapping(ColourMappedBlock 
         output.data[i].b = B(inputBlock.data[0][i],inputBlock.data[1][i]/* ,inputBlock.data[2][i] */);
     }
     return output;
+}
+
+/* Y is a luminance component, Cb and Cr are chromaticity components */
+bool jpeg::RGBToYCbCrMapper::componentIsLuminance(uint8_t component) const{
+    return component == 0;
 }
