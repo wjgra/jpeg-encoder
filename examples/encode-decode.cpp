@@ -47,6 +47,8 @@ int main(int argc, char *argv[]){
     int qualityValue = 80;
     int scale = 1;
     std::string inputBmpImagePath = "img/leclerc.bmp";
+    bool saveJpegToFile = false;
+    std::string outputJpegPath = "img/out.jpg";
     for(auto arg = arguments.begin() ; arg != arguments.end() ; ++arg){
         if (strcmp(arg->c_str(), "-q") == 0){
             if (arg != arguments.end() - 1){
@@ -58,6 +60,13 @@ int main(int argc, char *argv[]){
             if (arg != arguments.end() - 1){
                 ++arg;
                 inputBmpImagePath = *arg;
+            }
+        }
+        else if (strcmp(arg->c_str(), "-o") == 0){
+            saveJpegToFile = true;
+            if (arg != arguments.end() - 1){
+                ++arg;
+                outputJpegPath = *arg;
             }
         }
         else if (strcmp(arg->c_str(), "-s") == 0){
@@ -127,6 +136,10 @@ int main(int argc, char *argv[]){
               << "B | Compression ratio: " << (outputJpeg.fileSize == 0 ? std::string("N/A") : std::to_string(double(inputBmp.fileSize)/double(outputJpeg.fileSize))) 
               << " | Encode time: " << std::to_string(timeToEncode) + std::string(" ms | Decode time: ") << std::to_string(timeToDecode)
               << " ms\n";
+
+    if (saveJpegToFile){
+        outputJpeg.saveToFile(outputJpegPath);
+    }
 
     #ifndef __EMSCRIPTEN__
     while(mainLoop(window)){}

@@ -117,7 +117,9 @@ namespace jpeg{
         }
 
         void pushIntoAlignment(){
-            pushBitsu8(0, 8 - bitsInBuffer);
+            if (bitsInBuffer > 0){
+                pushBitsu8(0, 8 - bitsInBuffer);
+            }
         }
 
         bool readNextBit(BitStreamReadProgress& progress) const{
@@ -136,6 +138,10 @@ namespace jpeg{
             uint8_t firstByte = readNextAlignedByte(progress);
             return (firstByte << 8) | readNextAlignedByte(progress);
         }
+        uint8_t const* getDataPtr() const{
+            return stream.data();
+        }
+        
     private:
         uint8_t buffer;
         size_t bitsInBuffer;

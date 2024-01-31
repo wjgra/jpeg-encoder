@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <vector>
 #include <array>
+#include <string>
+#include <fstream>
 
 #include "..\inc\bitstream.hpp"
 
@@ -16,9 +18,12 @@ namespace jpeg{
         std::uintmax_t fileSize;
         BitStream compressedImageData;
         bool supportsSaving = false;
-        void saveToFile(){
+        void saveToFile(std::string const& path){
             if (supportsSaving){
-
+                std::ofstream file(path.c_str(), std::ios::out | std::ios::binary | std::ios::app);
+                compressedImageData.pushIntoAlignment();
+                file.write(reinterpret_cast<char const*>(compressedImageData.getDataPtr()), compressedImageData.getSize());
+                file.close();
             }
             else{
                 std::cerr << "Saving is not permitted for this configuration. Try using the baseline encoder.\n";
