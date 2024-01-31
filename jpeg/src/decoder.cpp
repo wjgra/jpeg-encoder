@@ -10,6 +10,7 @@ jpeg::Decoder::Decoder(JPEGImage inputImage,
     OutputBlockGrid outputBlockGrid(inputImage.width, inputImage.height);
     BitStreamReadProgress readProgress{};
     decodeHeader(inputImage.compressedImageData, readProgress, outputImage);
+    inputImage.compressedImageData.removeStuffedBytes(readProgress);
     // Decode image block-by-block
     std::array<int16_t, 3> lastDCValues = {0,0,0};
     while (!outputBlockGrid.atEnd()){

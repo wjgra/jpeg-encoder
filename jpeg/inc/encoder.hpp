@@ -24,6 +24,7 @@ namespace jpeg{
                 EntropyEncoder const& entropyEncoder);
     private:
         void encodeHeader(BitmapImageRGB const& inputImage, BitStream& outputStream) const;
+        void stuffAlignedBytes(BitStream& outputStream, size_t startOfScanData) const;
     };
 
     class BaselineEncoder : public Encoder{

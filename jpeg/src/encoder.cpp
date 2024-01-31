@@ -11,6 +11,7 @@ jpeg::Encoder::Encoder(BitmapImageRGB const& inputImage,
 {
     outputImage.compressedImageData.clearStream();
     encodeHeader(inputImage, outputImage.compressedImageData);
+    size_t startOfScanData = outputImage.compressedImageData.getSize();
     InputBlockGrid blockGrid(inputImage);
     std::array<int16_t, 3> lastDCValues = {0,0,0};
     for (auto const& block : blockGrid){
@@ -21,12 +22,13 @@ jpeg::Encoder::Encoder(BitmapImageRGB const& inputImage,
             entropyEncoder.encode(quantisedOutput, lastDCValues[channel], outputImage.compressedImageData, colourMapper.isLuminanceComponent(channel));
         }
     }
+    stuffAlignedBytes(outputImage.compressedImageData, startOfScanData);
     // Push end of image marker
     outputImage.compressedImageData.pushIntoAlignment();
     outputImage.compressedImageData.pushWord(markerEndOfImageSegmentEOI);
 
-    outputImage.width = inputImage.width;
-    outputImage.height = inputImage.height;
+    outputImage.width = inputImage.width;// to remove
+    outputImage.height = inputImage.height; // to remove
     outputImage.fileSize = outputImage.compressedImageData.getSize();
 }
 
@@ -59,6 +61,10 @@ void jpeg::Encoder::encodeHeader(BitmapImageRGB const& inputImage, BitStream& ou
 
     // SOS 
 
+}
+
+void jpeg::Encoder::stuffAlignedBytes(BitStream& outputStream, size_t startOfScanData) const{
+    outputStream.stuffBytes(startOfScanData);
 }
 
 jpeg::BaselineEncoder::BaselineEncoder(BitmapImageRGB const& inputImage, JPEGImage& outputImage, int quality) : 

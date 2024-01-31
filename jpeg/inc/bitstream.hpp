@@ -49,7 +49,7 @@ namespace jpeg{
             stream.clear();
         }
 
-        std::uintmax_t getSize(){
+        size_t getSize(){
             return stream.size() + (bitsInBuffer > 0);
         }
         static bool getBit(uint8_t input, size_t pos)
@@ -140,6 +140,28 @@ namespace jpeg{
         }
         uint8_t const* getDataPtr() const{
             return stream.data();
+        }
+
+        void stuffBytes(size_t from){
+            for (auto byte = stream.begin() + from ; byte != stream.end() ; ++byte){
+                if (*byte == 0xFF){
+                    ++byte;
+                    stream.insert(byte, 0x00);
+                }
+            }
+        }
+
+        void removeStuffedBytes(BitStreamReadProgress const& progress){
+            for (auto byte = stream.begin() + progress.currentByte ; byte != stream.end() - 2 /* Ignore EOI marker */; ){              
+                if (*byte == 0xFF && *(++byte) == 0x00){
+                    // Note that due to byte stuffing it is not possible for two 0xFF bytes to be consecutive
+                    stream.erase(byte);
+                }
+                else{
+                    ++byte;
+                }
+   
+            }
         }
         
     private:
