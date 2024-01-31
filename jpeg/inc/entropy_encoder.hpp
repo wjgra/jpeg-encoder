@@ -1,11 +1,6 @@
 #ifndef _JPEG_ENTROPY_ENCODER_HPP_
 #define _JPEG_ENTROPY_ENCODER_HPP_
 
-#include "..\inc\quantiser.hpp"
-#include "..\inc\bitstream.hpp"
-// temp
-#include "..\inc\block_grid.hpp"
-
 #include <cstdint>
 #include <vector>
 #include <array>
@@ -13,6 +8,10 @@
 #include <unordered_map>
 #include <ranges>
 #include <span>
+
+#include "..\inc\quantiser.hpp"
+#include "..\inc\bitstream.hpp"
+#include "..\inc\block_grid.hpp"
 
 namespace jpeg{
 

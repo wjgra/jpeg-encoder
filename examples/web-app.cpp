@@ -62,6 +62,9 @@ void mainLoopCallback(void* window){
 
 Window window(8, 8, "BMP-to-JPEG");
 
+// Global to allow re-use by downloader
+jpeg::JPEGImage outputJpeg;
+
 void encodeDecodeImage(jpeg::BitmapImageRGB const& inputBmp, int quality = 80){   
     if (inputBmp.width == 0 || inputBmp.height == 0){
         return;
@@ -83,9 +86,8 @@ void encodeDecodeImage(jpeg::BitmapImageRGB const& inputBmp, int quality = 80){
     SDL_DestroyTexture(inputBmpTexture);
 
     // Encode image as JPEG
-    jpeg::JPEGImage outputJpeg;
     auto tStart = std::chrono::high_resolution_clock::now();
-    jpeg::JPEGEncoder enc(inputBmp, outputJpeg, quality);
+    jpeg::BaselineEncoder enc(inputBmp, outputJpeg, quality);
     auto tEnd = std::chrono::high_resolution_clock::now();
 
     auto timeToEncode = 1e-3 * std::chrono::duration_cast<std::chrono::microseconds>(tEnd - tStart).count();
@@ -98,7 +100,7 @@ void encodeDecodeImage(jpeg::BitmapImageRGB const& inputBmp, int quality = 80){
     // Decode encoded JPEG image
     jpeg::BitmapImageRGB outputBmp;
     tStart = std::chrono::high_resolution_clock::now();
-    jpeg::JPEGDecoder dec(outputJpeg, outputBmp, quality);
+    jpeg::BaselineDecoder dec(outputJpeg, outputBmp, quality);
     tEnd = std::chrono::high_resolution_clock::now();
 
     auto timeToDecode = 1e-3 * std::chrono::duration_cast<std::chrono::microseconds>(tEnd - tStart).count();
@@ -174,6 +176,9 @@ extern "C" {
     }
 
     EMSCRIPTEN_KEEPALIVE void downloadEncodedImage(){
+        if (/* outputJpeg initialised*/false){
+
+        }
     }
 }
 

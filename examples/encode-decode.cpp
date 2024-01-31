@@ -92,7 +92,7 @@ int main(int argc, char *argv[]){
     // Encode image as JPEG
     jpeg::JPEGImage outputJpeg;
     auto tStart = std::chrono::high_resolution_clock::now();
-    jpeg::JPEGEncoder enc(inputBmp, outputJpeg, qualityValue);
+    jpeg::BaselineEncoder enc(inputBmp, outputJpeg, qualityValue);
     auto tEnd = std::chrono::high_resolution_clock::now();
 
     auto timeToEncode = 1e-3 * std::chrono::duration_cast<std::chrono::microseconds>(tEnd - tStart).count();
@@ -105,7 +105,7 @@ int main(int argc, char *argv[]){
     // Decode encoded JPEG image
     jpeg::BitmapImageRGB outputBmp;
     tStart = std::chrono::high_resolution_clock::now();
-    jpeg::JPEGDecoder dec(outputJpeg, outputBmp, qualityValue);
+    jpeg::BaselineDecoder dec(outputJpeg, outputBmp, qualityValue);
     tEnd = std::chrono::high_resolution_clock::now();
 
     auto timeToDecode = 1e-3 * std::chrono::duration_cast<std::chrono::microseconds>(tEnd - tStart).count();

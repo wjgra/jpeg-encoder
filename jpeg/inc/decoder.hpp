@@ -10,6 +10,7 @@
 #include "..\inc\discrete_cosine_transform.hpp"
 #include "..\inc\quantiser.hpp"
 #include "..\inc\entropy_encoder.hpp"
+#include "..\inc\markers.hpp"
 
 namespace jpeg{
     class Decoder{
@@ -20,11 +21,13 @@ namespace jpeg{
                 DiscreteCosineTransformer const& discreteCosineTransformer,
                 Quantiser const& quantiser,
                 EntropyEncoder const& entropyEncoder);
+    private:
+        void decodeHeader(BitStream const& inputStream, BitStreamReadProgress& readProgress, BitmapImageRGB& outputImage) const;
     };
 
-    class JPEGDecoder : public Decoder{
+    class BaselineDecoder : public Decoder{
     public:
-        JPEGDecoder(JPEGImage const& inputImage, BitmapImageRGB& outputImage, int quality = 50);
+        BaselineDecoder(JPEGImage const& inputImage, BitmapImageRGB& outputImage, int quality = 50);
     };
 };
 

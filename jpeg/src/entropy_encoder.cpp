@@ -653,14 +653,14 @@ void jpeg::HuffmanEncoder::pushHuffmanCodedDCDifferenceToStream(int16_t dcDiffer
     uint16_t const dcDiffAmplitude = dcDiffPositive ? dcDifference : -dcDifference;
     uint8_t const categorySSSS = std::bit_width(dcDiffAmplitude);
     // Push huff code for category SSSS
-    outputStream.pushBits(huffTable.dcTable[categorySSSS].codeWord, huffTable.dcTable[categorySSSS].codeLength);
+    outputStream.pushBitsu16(huffTable.dcTable[categorySSSS].codeWord, huffTable.dcTable[categorySSSS].codeLength);
     // Push DC diff amplitude
     if (categorySSSS > 0){
         if (dcDiffPositive){
-            outputStream.pushBits(dcDiffAmplitude, categorySSSS);
+            outputStream.pushBitsu16(dcDiffAmplitude, categorySSSS);
         }
         else{
-            outputStream.pushBits((uint16_t)(~dcDiffAmplitude), categorySSSS);
+            outputStream.pushBitsu16((uint16_t)(~dcDiffAmplitude), categorySSSS);
         }
     }
 }
@@ -687,15 +687,15 @@ void jpeg::HuffmanEncoder::pushHuffmanCodedACCoefficientToStream(RunLengthEncode
         else{
             huffPair = huffTable.acTable[runLengthRRRR][categorySSSS - 1];
         }
-        outputStream.pushBits(huffPair.codeWord, huffPair.codeLength);
+        outputStream.pushBitsu16(huffPair.codeWord, huffPair.codeLength);
 
         // Push AC value (same as for DC diff)
         if (categorySSSS > 0){
             if (acCoeffPositive){
-                outputStream.pushBits(acCoeffAmplitude, categorySSSS);
+                outputStream.pushBitsu16(acCoeffAmplitude, categorySSSS);
             }
             else{
-                outputStream.pushBits((uint16_t)(~acCoeffAmplitude), categorySSSS);
+                outputStream.pushBitsu16((uint16_t)(~acCoeffAmplitude), categorySSSS);
             }
         }
 }

@@ -2,6 +2,7 @@
 #define _JPEG_ENCODER_HPP_
 
 #include <string>
+#include <chrono>
 
 #include "..\inc\bitmap_image.hpp"
 #include "..\inc\jpeg_image.hpp"
@@ -10,6 +11,7 @@
 #include "..\inc\discrete_cosine_transform.hpp"
 #include "..\inc\quantiser.hpp"
 #include "..\inc\entropy_encoder.hpp"
+#include "..\inc\markers.hpp"
 
 namespace jpeg{
     class Encoder{
@@ -20,11 +22,13 @@ namespace jpeg{
                 DiscreteCosineTransformer const& discreteCosineTransformer,
                 Quantiser const& quantiser,
                 EntropyEncoder const& entropyEncoder);
+    private:
+        void encodeHeader(BitmapImageRGB const& inputImage, BitStream& outputStream) const;
     };
 
-    class JPEGEncoder : public Encoder{
+    class BaselineEncoder : public Encoder{
     public:
-        JPEGEncoder(BitmapImageRGB const& inputImage, JPEGImage& outputImage, int quality = 50);
+        BaselineEncoder(BitmapImageRGB const& inputImage, JPEGImage& outputImage, int quality = 50);
     };
 }
 

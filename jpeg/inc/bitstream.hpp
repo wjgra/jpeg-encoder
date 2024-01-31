@@ -28,6 +28,12 @@ namespace jpeg{
         void advanceBit(){
             advanceBits(1);
         }
+        void advanceIntoAlignment(){
+            if (currentBit > 0){
+                currentBit = 0;
+                ++currentByte;
+            }
+        }
     };
 
     /* A stream to which up to 16 bits can be pushed at a time.
@@ -51,8 +57,8 @@ namespace jpeg{
             return input & (1u << (7 - pos));
         }
 
-
-        void pushBits(uint8_t data, size_t numberOfBitsToPush){
+        /* Could rely on overloading, but risk of clashes */
+        void pushBitsu8(uint8_t data, size_t numberOfBitsToPush){
             // std::cout << "PB: " << int(data) << ", " << numberOfBitsToPush << "\n";
             assert(numberOfBitsToPush <= 8);
             // Remove unneeded leading bits
@@ -78,17 +84,17 @@ namespace jpeg{
             }
         }
         
-        void pushBits(uint16_t data, size_t numberOfBitsToPush){
+        void pushBitsu16(uint16_t data, size_t numberOfBitsToPush){
             assert(numberOfBitsToPush <= 16);
             if (numberOfBitsToPush <= 8){
                 uint8_t const u8Data = data & uint8_t(0x00FF);
-                pushBits(u8Data, numberOfBitsToPush);
+                pushBitsu8(u8Data, numberOfBitsToPush);
             }
             else{
                 uint8_t const u8LeftData = (data >> 8) & uint8_t(0x00FF);
-                pushBits(u8LeftData, numberOfBitsToPush - 8);
+                pushBitsu8(u8LeftData, numberOfBitsToPush - 8);
                 uint8_t const u8RightData = data & uint8_t(0x00FF);
-                pushBits(u8RightData, 8);
+                pushBitsu8(u8RightData, 8);
             }
         }
         
@@ -102,11 +108,33 @@ namespace jpeg{
             
         }
 
+        void pushByte(uint8_t data){
+            pushBitsu8(data, 8);
+        }
+
+        void pushWord(uint16_t data){
+            pushBitsu16(data, 16);
+        }
+
+        void pushIntoAlignment(){
+            pushBitsu8(0, 8 - bitsInBuffer);
+        }
+
         bool readNextBit(BitStreamReadProgress& progress) const{
             uint8_t currentByte = readByte(progress.currentByte);
             bool output = getBit(currentByte, progress.currentBit);
             progress.advanceBit();
             return output;
+        }
+
+        uint8_t readNextAlignedByte(BitStreamReadProgress& progress) const{
+            progress.advanceIntoAlignment();
+            return readByte(progress.currentByte++);
+        }
+
+        uint16_t readNextAlignedWord(BitStreamReadProgress& progress) const{
+            uint8_t firstByte = readNextAlignedByte(progress);
+            return (firstByte << 8) | readNextAlignedByte(progress);
         }
     private:
         uint8_t buffer;
