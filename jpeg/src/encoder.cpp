@@ -38,7 +38,7 @@ void jpeg::Encoder::encodeHeader(BitmapImageRGB const& inputImage, BitStream& ou
     outputStream.pushWord(markerStartOfImageSegmentSOI);
     // APP-0
     outputStream.pushWord(markerJFIFImageSegmentAPP0);
-    outputStream.pushWord(0x0010); // length
+    outputStream.pushWord(16); // length
     outputStream.pushByte('J');
     outputStream.pushByte('F');
     outputStream.pushByte('I');
@@ -52,10 +52,27 @@ void jpeg::Encoder::encodeHeader(BitmapImageRGB const& inputImage, BitStream& ou
     // COM
 
     // DQT
-
+    /* 0 = luminance
+       1 = chrominance */
     // SOF0
     outputStream.pushWord(markerStartOfFrame0SOF0);
-    /* length */
+    outputStream.pushWord(17); // length
+    outputStream.pushByte(0x08); // precision
+    outputStream.pushWord(inputImage.height);
+    outputStream.pushWord(inputImage.width);
+    outputStream.pushByte(3); // Number of components
+    // First component
+    outputStream.pushByte(0); // ID
+    outputStream.pushByte(0x11); // Horizontal and vertical sampling factor
+    outputStream.pushByte(0); // Quantisation table
+    // Second component
+    outputStream.pushByte(1); // ID
+    outputStream.pushByte(0x11); // Horizontal and vertical sampling factor
+    outputStream.pushByte(1); // Quantisation table
+    // Third component
+    outputStream.pushByte(2); // ID
+    outputStream.pushByte(0x11); // Horizontal and vertical sampling factor
+    outputStream.pushByte(1); // Quantisation table
 
     // DHT
 

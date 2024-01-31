@@ -37,9 +37,9 @@ void jpeg::Decoder::decodeHeader(BitStream const& inputStream, BitStreamReadProg
     if (inputStream.readNextAlignedWord(readProgress) != markerJFIFImageSegmentAPP0){
         throw "Failed to find APP-0 marker";
     }
-    {
-        auto startOfAPP0Payload = readProgress.currentByte;
-        auto APP0length = inputStream.readNextAlignedWord(readProgress);
+    else{
+        auto const startOfAPP0Payload = readProgress.currentByte;
+        auto const APP0length = inputStream.readNextAlignedWord(readProgress);
         if (inputStream.readNextAlignedByte(readProgress) != 'J'){
             throw "Failed to find 'J'(FIF) in APP-0 payload";
         }
@@ -75,13 +75,55 @@ void jpeg::Decoder::decodeHeader(BitStream const& inputStream, BitStreamReadProg
         }
     }
 
-    // read next marker - switch b/w sof/com/dqt/dht
+    /* Issue: allow disordered markers */
 
     if (inputStream.readNextAlignedWord(readProgress) != markerStartOfFrame0SOF0){
         throw "Failed to find SOF0 marker";
     }
-    {
-
+    else{
+        auto const startOfSOF0Payload = readProgress.currentByte;
+        auto const SOF0length = inputStream.readNextAlignedWord(readProgress);
+        if (inputStream.readNextAlignedByte(readProgress) != 0x08){
+            throw "Failed to find precision in SOF0 payload";
+        }
+        outputImage.height = inputStream.readNextAlignedWord(readProgress);
+        outputImage.width = inputStream.readNextAlignedWord(readProgress);
+        if (inputStream.readNextAlignedByte(readProgress) != 3){
+            throw "Failed to find number of components in SOF0 payload";
+        }
+        // First component
+        if (inputStream.readNextAlignedByte(readProgress) != 0){
+            throw "Failed to find first component ID in SOF0 payload";
+        }
+        if (inputStream.readNextAlignedByte(readProgress) != 0x11){
+            throw "Failed to find first component sampling factors in SOF0 payload";
+        }
+        if (inputStream.readNextAlignedByte(readProgress) != 0){
+            throw "Failed to find first component quantisation table ID in SOF0 payload";
+        }
+        // Second component
+        if (inputStream.readNextAlignedByte(readProgress) != 1){
+            throw "Failed to find second component ID in SOF0 payload";
+        }
+        if (inputStream.readNextAlignedByte(readProgress) != 0x11){
+            throw "Failed to find second component sampling factors in SOF0 payload";
+        }
+        if (inputStream.readNextAlignedByte(readProgress) != 1){
+            throw "Failed to find second component quantisation table ID in SOF0 payload";
+        }
+        // Third component
+        if (inputStream.readNextAlignedByte(readProgress) != 2){
+            throw "Failed to find third component ID in SOF0 payload";
+        }
+        if (inputStream.readNextAlignedByte(readProgress) != 0x11){
+            throw "Failed to find third component sampling factors in SOF0 payload";
+        }
+        if (inputStream.readNextAlignedByte(readProgress) != 1){
+            throw "Failed to find third component quantisation table ID in SOF0 payload";
+        }
+        if (SOF0length != readProgress.currentByte - startOfSOF0Payload){
+            throw "SOF0 length parameter does not correspond to payload size";
+        }
     }
 }
 
