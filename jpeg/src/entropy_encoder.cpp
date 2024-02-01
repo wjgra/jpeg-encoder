@@ -108,11 +108,24 @@ jpeg::RunLengthEncodedChannelOutput jpeg::EntropyEncoder::applyRunLengthEncoding
             ++zeroCount;
         }
     }
-    // Delete any trailing zeroes, replace with EoB
-    while (!output.acCoefficients.empty() &&  output.acCoefficients.back().value == 0){
-        output.acCoefficients.pop_back();
+    if (input.data.back() == 0){
+        // Delete any trailing zeroes
+        while (!output.acCoefficients.empty() &&  output.acCoefficients.back().value == 0){
+            output.acCoefficients.pop_back();
+        }
+        // Append EoB
+        output.acCoefficients.emplace_back(0, 0);
     }
-    output.acCoefficients.emplace_back(0, 0);
+    
+    // Add EoB if fewer than 63 AC coefficients encoded
+    /* size_t processedAcCoefficients = 0;
+    for (auto const& coeff : output.acCoefficients){
+        processedAcCoefficients += 1 + coeff.runLength;
+    } */
+    /* assert(processedAcCoefficients < 64);
+    if (processedAcCoefficients != 63){
+        output.acCoefficients.emplace_back(0, 0);
+    } */
     return output;
 }
 
@@ -700,9 +713,11 @@ void jpeg::HuffmanEncoder::applyFinalEncoding(RunLengthEncodedChannelOutput cons
 jpeg::RunLengthEncodedChannelOutput jpeg::HuffmanEncoder::removeFinalEncoding(BitStream const& inputStream, BitStreamReadProgress& readProgress, bool isLuminanceComponent) const{
     RunLengthEncodedChannelOutput out;
     out.dcDifference = extractDCDifferenceFromStream(inputStream, readProgress, isLuminanceComponent ? luminanceHuffTable : chrominanceHuffTable);
+    size_t processedAcCoefficients = 0;
     do{
         out.acCoefficients.emplace_back(extractACCoefficientFromStream(inputStream, readProgress, isLuminanceComponent ? luminanceHuffTable : chrominanceHuffTable));
-    } while (out.acCoefficients.back() != RunLengthEncodedChannelOutput::RunLengthEncodedACCoefficient{.runLength = 0, .value = 0});
+        processedAcCoefficients += 1 + out.acCoefficients.back().runLength;
+    } while ((processedAcCoefficients != 63) && (out.acCoefficients.back() != RunLengthEncodedChannelOutput::RunLengthEncodedACCoefficient{.runLength = 0, .value = 0}));
     return out;
 }
 
@@ -711,7 +726,7 @@ void jpeg::HuffmanEncoder::pushHuffmanCodedDCDifferenceToStream(int16_t dcDiffer
     bool const dcDiffPositive = dcDifference > 0;
     uint16_t const dcDiffAmplitude = dcDiffPositive ? dcDifference : -dcDifference;
     uint8_t const categorySSSS = std::bit_width(dcDiffAmplitude);
-    // Push huff code for category SSSS
+    // Push Huffman code for category SSSS
     outputStream.pushBitsu16(huffTable.dcTable[categorySSSS].codeWord, huffTable.dcTable[categorySSSS].codeLength);
     // Push DC diff amplitude
     if (categorySSSS > 0){

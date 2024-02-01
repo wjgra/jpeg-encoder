@@ -9,6 +9,7 @@
 #include <ranges>
 #include <span>
 #include <algorithm>
+#include <numeric>
 
 #include "..\inc\quantiser.hpp"
 #include "..\inc\bitstream.hpp"
