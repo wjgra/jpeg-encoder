@@ -1,5 +1,5 @@
 
-#include "..\inc\encoder.hpp"
+#include "encoder.hpp"
 
 jpeg::Encoder::Encoder(BitmapImageRGB const& inputImage,
                        JPEGImage& outputImage,

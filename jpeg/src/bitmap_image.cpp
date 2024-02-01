@@ -1,4 +1,4 @@
-#include "..\inc\bitmap_image.hpp"
+#include "bitmap_image.hpp"
 
 jpeg::BitmapImageRGB::BitmapImageRGB() : width{0}, height{0} {};
 

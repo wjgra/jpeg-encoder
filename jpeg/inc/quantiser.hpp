@@ -3,9 +3,9 @@
 
 #include <cmath>
 
-#include "..\inc\discrete_cosine_transform.hpp"
-#include "..\inc\bitstream.hpp"
-#include "..\inc\markers.hpp"
+#include "discrete_cosine_transform.hpp"
+#include "bitstream.hpp"
+#include "markers.hpp"
 
 namespace jpeg{
 

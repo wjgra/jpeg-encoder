@@ -1,4 +1,4 @@
-#include "../inc/colour_mapping.hpp"
+#include "colour_mapping.hpp"
 
 jpeg::ColourMappedBlock jpeg::ColourMapper::map(jpeg::BlockGrid::Block const& inputBlock) const{
     return applyMapping(inputBlock);

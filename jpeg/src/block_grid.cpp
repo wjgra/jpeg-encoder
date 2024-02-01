@@ -1,4 +1,4 @@
-#include "..\inc\block_grid.hpp"
+#include "block_grid.hpp"
 
 jpeg::InputBlockGrid::InputBlockGrid(BitmapImageRGB const& input) : imageData{input}{};
 

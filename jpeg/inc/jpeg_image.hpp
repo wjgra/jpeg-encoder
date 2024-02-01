@@ -7,10 +7,10 @@
 #include <string>
 #include <fstream>
 
-#include "..\inc\bitstream.hpp"
+#include "bitstream.hpp"
 
 // temp
-#include "..\inc\entropy_encoder.hpp"
+#include "entropy_encoder.hpp"
 namespace jpeg{
     /* Stores a JPEG image */
     struct JPEGImage{

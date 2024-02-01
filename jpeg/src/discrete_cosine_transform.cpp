@@ -1,4 +1,4 @@
-#include "..\inc\discrete_cosine_transform.hpp"
+#include "discrete_cosine_transform.hpp"
 
 jpeg::DCTChannelOutput jpeg::DiscreteCosineTransformer::transform(ColourMappedBlock::ChannelBlock const& inputChannel) const{
     std::array<int8_t, BlockGrid::blockElements> offsetChannelData = applyOffset(inputChannel);

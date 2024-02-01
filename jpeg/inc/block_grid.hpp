@@ -6,7 +6,7 @@
 #include <array>
 #include <iterator>
 
-#include "..\inc\bitmap_image.hpp"
+#include "bitmap_image.hpp"
 
 namespace jpeg{
 

@@ -11,10 +11,10 @@
 #include <algorithm>
 #include <numeric>
 
-#include "..\inc\quantiser.hpp"
-#include "..\inc\bitstream.hpp"
-#include "..\inc\block_grid.hpp"
-#include "..\inc\markers.hpp"
+#include "quantiser.hpp"
+#include "bitstream.hpp"
+#include "block_grid.hpp"
+#include "markers.hpp"
 
 namespace jpeg{
 

@@ -1,4 +1,4 @@
-#include "..\inc\quantiser.hpp"
+#include "quantiser.hpp"
 
 jpeg::Quantiser::Quantiser(int quality){
     /* Generates a quantisation matrix of a given quality, as described in 

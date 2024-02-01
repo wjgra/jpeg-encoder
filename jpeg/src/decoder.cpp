@@ -1,4 +1,4 @@
-#include "..\inc\decoder.hpp"
+#include "decoder.hpp"
 
 jpeg::Decoder::Decoder(JPEGImage inputImage,
                        BitmapImageRGB& outputImage,

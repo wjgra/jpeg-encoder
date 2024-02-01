@@ -4,14 +4,14 @@
 #include <string>
 #include <chrono>
 
-#include "..\inc\bitmap_image.hpp"
-#include "..\inc\jpeg_image.hpp"
-#include "..\inc\block_grid.hpp"
-#include "..\inc\colour_mapping.hpp"
-#include "..\inc\discrete_cosine_transform.hpp"
-#include "..\inc\quantiser.hpp"
-#include "..\inc\entropy_encoder.hpp"
-#include "..\inc\markers.hpp"
+#include "bitmap_image.hpp"
+#include "jpeg_image.hpp"
+#include "block_grid.hpp"
+#include "colour_mapping.hpp"
+#include "discrete_cosine_transform.hpp"
+#include "quantiser.hpp"
+#include "entropy_encoder.hpp"
+#include "markers.hpp"
 
 namespace jpeg{
     class Encoder{

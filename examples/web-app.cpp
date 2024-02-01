@@ -1,5 +1,5 @@
 #include <emscripten.h>
-#include "..\common\emscripten_browser_file.h"
+#include "emscripten_browser_file.h"
 
 #define SDL_MAIN_HANDLED
 #include <SDL_main.h>
@@ -9,9 +9,9 @@
 #include <string>
 #include <filesystem>
 
-#include "..\common\window.hpp"
-#include "..\jpeg\inc\encoder.hpp"
-#include "..\jpeg\inc\decoder.hpp"
+#include "window.hpp"
+#include "encoder.hpp"
+#include "decoder.hpp"
 
 /* This is similar to the encode-decode example, but has been adapted to make use of the HTML interface
    defined in template.html. In Emscripten, the main loop is simulated by throwing a JavaScript exception, 

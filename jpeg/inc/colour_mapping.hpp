@@ -5,8 +5,8 @@
 #include <cmath>
 #include <cassert>
 
-#include "..\inc\bitmap_image.hpp"
-#include "..\inc\block_grid.hpp"
+#include "bitmap_image.hpp"
+#include "block_grid.hpp"
 
 
 namespace jpeg{

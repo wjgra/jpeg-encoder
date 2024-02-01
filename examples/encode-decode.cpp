@@ -9,9 +9,9 @@
 #include <vector>
 #include <string>
 
-#include "..\common\window.hpp"
-#include "..\jpeg\inc\encoder.hpp"
-#include "..\jpeg\inc\decoder.hpp"
+#include "window.hpp"
+#include "encoder.hpp"
+#include "decoder.hpp"
 
 bool mainLoop(Window& window){
     SDL_Event event;

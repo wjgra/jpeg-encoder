@@ -6,8 +6,8 @@
 #include <cmath>
 #include <numbers>
 
-#include "..\inc\colour_mapping.hpp"
-#include "..\inc\block_grid.hpp"
+#include "colour_mapping.hpp"
+#include "block_grid.hpp"
 namespace jpeg{
 
     struct DCTChannelOutput{

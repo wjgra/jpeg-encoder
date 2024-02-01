@@ -1,4 +1,4 @@
-#include "..\inc\entropy_encoder.hpp"
+#include "entropy_encoder.hpp"
 
 void jpeg::EntropyEncoder::encode(QuantisedChannelOutput const& input, int16_t& lastDCValue, BitStream& outputStream, bool isLuminanceComponent) const{
     QuantisedChannelOutput zigZagMappedChannelData = mapFromGridToZigZag(input);
@@ -116,16 +116,6 @@ jpeg::RunLengthEncodedChannelOutput jpeg::EntropyEncoder::applyRunLengthEncoding
         // Append EoB
         output.acCoefficients.emplace_back(0, 0);
     }
-    
-    // Add EoB if fewer than 63 AC coefficients encoded
-    /* size_t processedAcCoefficients = 0;
-    for (auto const& coeff : output.acCoefficients){
-        processedAcCoefficients += 1 + coeff.runLength;
-    } */
-    /* assert(processedAcCoefficients < 64);
-    if (processedAcCoefficients != 63){
-        output.acCoefficients.emplace_back(0, 0);
-    } */
     return output;
 }
 
