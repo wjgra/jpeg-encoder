@@ -674,16 +674,16 @@ void jpeg::HuffmanEncoder::encodeHeaderEntropyTables(BitStream& outputStream) co
     std::ranges::for_each(luminanceDcCodeLengths, [&outputStream](uint8_t const& len){outputStream.pushByte(len);});
     std::ranges::for_each(luminanceDcValues, [&outputStream](uint8_t const& val){outputStream.pushByte(val);});
 
-    // Chrominance DC table
-    outputStream.pushByte(0x01); // table type + ID
-    std::ranges::for_each(chrominanceDcCodeLengths, [&outputStream](uint8_t const& len){outputStream.pushByte(len);});
-    std::ranges::for_each(chrominanceDcValues, [&outputStream](uint8_t const& val){outputStream.pushByte(val);});
-    
     // Luminance AC table
     outputStream.pushByte(0x10); // table type + ID
     std::ranges::for_each(luminanceAcCodeLengths, [&outputStream](uint8_t const& len){outputStream.pushByte(len);});
     std::ranges::for_each(luminanceAcValues, [&outputStream](uint8_t const& val){outputStream.pushByte(val);});
 
+    // Chrominance DC table
+    outputStream.pushByte(0x01); // table type + ID
+    std::ranges::for_each(chrominanceDcCodeLengths, [&outputStream](uint8_t const& len){outputStream.pushByte(len);});
+    std::ranges::for_each(chrominanceDcValues, [&outputStream](uint8_t const& val){outputStream.pushByte(val);});
+    
     // Chrominance AC table
     outputStream.pushByte(0x11); // table type + ID
     std::ranges::for_each(chrominanceAcCodeLengths, [&outputStream](uint8_t const& len){outputStream.pushByte(len);});

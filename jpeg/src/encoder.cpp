@@ -70,15 +70,15 @@ void jpeg::Encoder::encodeHeader(BitmapImageRGB const& inputImage, BitStream& ou
     outputStream.pushWord(inputImage.width);
     outputStream.pushByte(3); // Number of components
     // First component
-    outputStream.pushByte(0); // ID
+    outputStream.pushByte(1); // ID
     outputStream.pushByte(0x11); // Horizontal and vertical sampling factor
     outputStream.pushByte(0); // Quantisation table
     // Second component
-    outputStream.pushByte(1); // ID
+    outputStream.pushByte(2); // ID
     outputStream.pushByte(0x11); // Horizontal and vertical sampling factor
     outputStream.pushByte(1); // Quantisation table
     // Third component
-    outputStream.pushByte(2); // ID
+    outputStream.pushByte(3); // ID
     outputStream.pushByte(0x11); // Horizontal and vertical sampling factor
     outputStream.pushByte(1); // Quantisation table
 
@@ -90,16 +90,17 @@ void jpeg::Encoder::encodeHeader(BitmapImageRGB const& inputImage, BitStream& ou
     outputStream.pushWord(12); // length
     outputStream.pushByte(3); // Number of components
     // First component
-    outputStream.pushByte(0); // ID
+    outputStream.pushByte(1); // ID
     outputStream.pushByte(0x00); // Huffman table
     // Second component
-    outputStream.pushByte(1); // ID
-    outputStream.pushByte(0x11); // Huffman table
-    // Third component
     outputStream.pushByte(2); // ID
     outputStream.pushByte(0x11); // Huffman table
-    // Skip bytes
-    outputStream.pushWord(0x0000);
+    // Third component
+    outputStream.pushByte(3); // ID
+    outputStream.pushByte(0x11); // Huffman table
+    // Spectral selection
+    outputStream.pushWord(0x003F);
+    // Skip
     outputStream.pushByte(0x00);
 }
 

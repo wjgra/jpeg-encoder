@@ -21,7 +21,6 @@ namespace jpeg{
         void saveToFile(std::string const& path){
             if (supportsSaving){
                 std::ofstream file(path.c_str(), std::ios::out | std::ios::binary | std::ios::app);
-                compressedImageData.pushIntoAlignment();
                 file.write(reinterpret_cast<char const*>(compressedImageData.getDataPtr()), compressedImageData.getSize());
                 file.close();
             }

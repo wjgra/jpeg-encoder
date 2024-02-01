@@ -179,7 +179,7 @@ extern "C" {
         assert(outputJpeg.supportsSaving);
         std::string filename = "out.jpg";
         std::string mimeType = "image/jpeg";
-        emscripten_browser_file::download(filename.c_str(), mimeType.c_str(), outputJpeg.compressedImageData.getDataPtr(), outputJpeg.compressedImageData.getSize());
+        emscripten_browser_file::download(filename.c_str(), mimeType.c_str(), reinterpret_cast<char const*>(outputJpeg.compressedImageData.getDataPtr()), outputJpeg.compressedImageData.getSize());
     }
 }
 

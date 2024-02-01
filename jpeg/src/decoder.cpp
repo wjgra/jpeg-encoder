@@ -100,7 +100,7 @@ void jpeg::Decoder::decodeHeader(BitStream const& inputStream, BitStreamReadProg
             throw std::runtime_error("Failed to find number of components in SOF0 payload");
         }
         // First component
-        if (inputStream.readNextAlignedByte(readProgress) != 0){
+        if (inputStream.readNextAlignedByte(readProgress) != 1){
             throw std::runtime_error("Failed to find first component ID in SOF0 payload");
         }
         if (inputStream.readNextAlignedByte(readProgress) != 0x11){
@@ -110,7 +110,7 @@ void jpeg::Decoder::decodeHeader(BitStream const& inputStream, BitStreamReadProg
             throw std::runtime_error("Failed to find first component quantisation table ID in SOF0 payload");
         }
         // Second component
-        if (inputStream.readNextAlignedByte(readProgress) != 1){
+        if (inputStream.readNextAlignedByte(readProgress) != 2){
             throw std::runtime_error("Failed to find second component ID in SOF0 payload");
         }
         if (inputStream.readNextAlignedByte(readProgress) != 0x11){
@@ -120,7 +120,7 @@ void jpeg::Decoder::decodeHeader(BitStream const& inputStream, BitStreamReadProg
             throw std::runtime_error("Failed to find second component quantisation table ID in SOF0 payload");
         }
         // Third component
-        if (inputStream.readNextAlignedByte(readProgress) != 2){
+        if (inputStream.readNextAlignedByte(readProgress) != 3){
             throw std::runtime_error("Failed to find third component ID in SOF0 payload");
         }
         if (inputStream.readNextAlignedByte(readProgress) != 0x11){
@@ -147,32 +147,32 @@ void jpeg::Decoder::decodeHeader(BitStream const& inputStream, BitStreamReadProg
             throw std::runtime_error("Failed to find number of components in SOS payload");
         }
         // First component
-        if (inputStream.readNextAlignedByte(readProgress) != 0){
+        if (inputStream.readNextAlignedByte(readProgress) != 1){
             throw std::runtime_error("Failed to find first component ID in SOS payload");
         }
         if (inputStream.readNextAlignedByte(readProgress) != 0x00){
             throw std::runtime_error("Failed to find first component Huffman table ID in SOS payload");
         }
         // Second component
-        if (inputStream.readNextAlignedByte(readProgress) != 1){
+        if (inputStream.readNextAlignedByte(readProgress) != 2){
             throw std::runtime_error("Failed to find second component ID in SOS payload");
         }
         if (inputStream.readNextAlignedByte(readProgress) != 0x11){
             throw std::runtime_error("Failed to find second component Huffman table ID in SOS payload");
         }
         // Third component
-        if (inputStream.readNextAlignedByte(readProgress) != 2){
+        if (inputStream.readNextAlignedByte(readProgress) != 3){
             throw std::runtime_error("Failed to find third component ID in SOS payload");
         }
         if (inputStream.readNextAlignedByte(readProgress) != 0x11){
             throw std::runtime_error("Failed to find third component Huffman table ID in SOS payload");
         }
         // Skip bytes
-        if (inputStream.readNextAlignedWord(readProgress) != 0){
-            throw std::runtime_error("Failed to find skip bytes in SOS payload");
+        if (inputStream.readNextAlignedWord(readProgress) != 0x003F){
+            throw std::runtime_error("Failed to find spectral alignment in SOS payload");
         }
         if (inputStream.readNextAlignedByte(readProgress) != 0){
-            throw std::runtime_error("Failed to find skip bytes in SOS payload");
+            throw std::runtime_error("Failed to find skip byte in SOS payload");
         }
         if (SOSlength != readProgress.currentByte - startOfSOSPayload){
             throw std::runtime_error("SOS length parameter does not correspond to payload size");
