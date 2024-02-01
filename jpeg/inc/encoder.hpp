@@ -23,7 +23,7 @@ namespace jpeg{
                 Quantiser const& quantiser,
                 EntropyEncoder const& entropyEncoder);
     private:
-        void encodeHeader(BitmapImageRGB const& inputImage, BitStream& outputStream) const;
+        void encodeHeader(BitmapImageRGB const& inputImage, BitStream& outputStream, Quantiser const& quantiser, EntropyEncoder const& entropyEncoder) const;
         void stuffAlignedBytes(BitStream& outputStream, size_t startOfScanData) const;
     };
 

@@ -4,6 +4,8 @@
 #include <cmath>
 
 #include "..\inc\discrete_cosine_transform.hpp"
+#include "..\inc\bitstream.hpp"
+#include "..\inc\markers.hpp"
 
 namespace jpeg{
 
@@ -16,6 +18,8 @@ namespace jpeg{
         Quantiser(int quality = 50);
         QuantisedChannelOutput quantise(DCTChannelOutput const& dctInput, bool useLuminanceMatrix) const;
         DCTChannelOutput dequantise(QuantisedChannelOutput const& quantisedInput, bool useLuminanceMatrix) const;
+        void encodeHeaderQuantisationTables(BitStream& outputStream) const;
+        /* Issue: include decoding for non-default tables */
     private:
         std::array<uint16_t, BlockGrid::blockElements> luminanceQuantisationMatrix;
         std::array<uint16_t, BlockGrid::blockElements> chrominanceQuantisationMatrix;

@@ -66,10 +66,10 @@ void jpeg::Decoder::decodeHeader(BitStream const& inputStream, BitStreamReadProg
         if (inputStream.readNextAlignedByte(readProgress) != 00){
             throw std::runtime_error("Failed to find density units in APP-0 payload");
         }
-        if (inputStream.readNextAlignedWord(readProgress) != 0x0001){
+        if (inputStream.readNextAlignedWord(readProgress) != 0x0010){
             throw std::runtime_error("Failed to find Xdensity in APP-0 payload");
         }
-        if (inputStream.readNextAlignedWord(readProgress) != 0x0001){
+        if (inputStream.readNextAlignedWord(readProgress) != 0x0010){
             throw std::runtime_error("Failed to find Ydensity in APP-0 payload");
         }
         if (inputStream.readNextAlignedWord(readProgress) != 0x0000){
@@ -81,6 +81,9 @@ void jpeg::Decoder::decodeHeader(BitStream const& inputStream, BitStreamReadProg
     }
 
     /* Issue: allow disordered markers */
+
+    /* SKIP DQT decoding */
+    readProgress.currentByte += 2 /* Marker */ + 2 /* Len */ + 2 * 65 /* Table data */;
 
     if (inputStream.readNextAlignedWord(readProgress) != markerStartOfFrame0SOF0){
         throw std::runtime_error("Failed to find SOF0 marker");
@@ -131,6 +134,9 @@ void jpeg::Decoder::decodeHeader(BitStream const& inputStream, BitStreamReadProg
         }
     }
 
+    /* SKIP DHT decoding */
+    readProgress.currentByte += 2 /* marker */ + 2 /* len */+ 4 /* IDs */+ 412 /* hardcoded tables */;
+
     if (inputStream.readNextAlignedWord(readProgress) != markerStartOfScanSegmentSOS){
         throw std::runtime_error("Failed to find SOS marker");
     }
@@ -144,21 +150,21 @@ void jpeg::Decoder::decodeHeader(BitStream const& inputStream, BitStreamReadProg
         if (inputStream.readNextAlignedByte(readProgress) != 0){
             throw std::runtime_error("Failed to find first component ID in SOS payload");
         }
-        if (inputStream.readNextAlignedByte(readProgress) != 0){
+        if (inputStream.readNextAlignedByte(readProgress) != 0x00){
             throw std::runtime_error("Failed to find first component Huffman table ID in SOS payload");
         }
         // Second component
         if (inputStream.readNextAlignedByte(readProgress) != 1){
             throw std::runtime_error("Failed to find second component ID in SOS payload");
         }
-        if (inputStream.readNextAlignedByte(readProgress) != 1){
+        if (inputStream.readNextAlignedByte(readProgress) != 0x11){
             throw std::runtime_error("Failed to find second component Huffman table ID in SOS payload");
         }
         // Third component
         if (inputStream.readNextAlignedByte(readProgress) != 2){
             throw std::runtime_error("Failed to find third component ID in SOS payload");
         }
-        if (inputStream.readNextAlignedByte(readProgress) != 1){
+        if (inputStream.readNextAlignedByte(readProgress) != 0x11){
             throw std::runtime_error("Failed to find third component Huffman table ID in SOS payload");
         }
         // Skip bytes

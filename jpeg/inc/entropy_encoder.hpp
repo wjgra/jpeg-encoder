@@ -8,10 +8,12 @@
 #include <unordered_map>
 #include <ranges>
 #include <span>
+#include <algorithm>
 
 #include "..\inc\quantiser.hpp"
 #include "..\inc\bitstream.hpp"
 #include "..\inc\block_grid.hpp"
+#include "..\inc\markers.hpp"
 
 namespace jpeg{
 
@@ -30,6 +32,8 @@ namespace jpeg{
     public:
         void encode(QuantisedChannelOutput const& input, int16_t& lastDCValue, BitStream& outputStream, bool isLuminanceComponent) const;
         QuantisedChannelOutput decode(BitStream const& inputStream, BitStreamReadProgress& readProgress, int16_t& lastDCValue, bool isLuminanceComponent) const;
+        virtual void encodeHeaderEntropyTables(BitStream& outputStream) const = 0;
+        /* Issue: include decoding for non-default tables */
     private:
         QuantisedChannelOutput mapFromGridToZigZag(QuantisedChannelOutput const& input) const;
         QuantisedChannelOutput mapFromZigZagToGrid(QuantisedChannelOutput const& input) const;
@@ -43,6 +47,7 @@ namespace jpeg{
     class HuffmanEncoder : public EntropyEncoder{
     public:
         HuffmanEncoder();
+        void encodeHeaderEntropyTables(BitStream& outputStream) const override;
     protected:
         void applyFinalEncoding(RunLengthEncodedChannelOutput const& input, BitStream& outputStream, bool isLuminanceComponent) const override;
         RunLengthEncodedChannelOutput removeFinalEncoding(BitStream const& inputStream, BitStreamReadProgress& readProgress, bool isLuminanceComponent) const override;

@@ -11,7 +11,7 @@ jpeg::Encoder::Encoder(BitmapImageRGB const& inputImage,
 {
     try{
         outputImage.compressedImageData.clearStream();
-        encodeHeader(inputImage, outputImage.compressedImageData);
+        encodeHeader(inputImage, outputImage.compressedImageData, quantiser, entropyEncoder);
         size_t startOfScanData = outputImage.compressedImageData.getSize();
         InputBlockGrid blockGrid(inputImage);
         std::array<int16_t, 3> lastDCValues = {0,0,0};
@@ -38,9 +38,10 @@ jpeg::Encoder::Encoder(BitmapImageRGB const& inputImage,
 }
 
 /* Issue: currently hardcoded with baseline parameters*/
-void jpeg::Encoder::encodeHeader(BitmapImageRGB const& inputImage, BitStream& outputStream) const {
+void jpeg::Encoder::encodeHeader(BitmapImageRGB const& inputImage, BitStream& outputStream, Quantiser const& quantiser, EntropyEncoder const& entropyEncoder) const {
     // SOI
     outputStream.pushWord(markerStartOfImageSegmentSOI);
+
     // APP-0
     outputStream.pushWord(markerJFIFImageSegmentAPP0);
     outputStream.pushWord(16); // length
@@ -51,14 +52,16 @@ void jpeg::Encoder::encodeHeader(BitmapImageRGB const& inputImage, BitStream& ou
     outputStream.pushByte(00);
     outputStream.pushWord(0x0102); // version
     outputStream.pushByte(0x00); // density units
-    outputStream.pushWord(0x0001); // Xdensity
-    outputStream.pushWord(0x0001); // Ydensity
+    outputStream.pushWord(0x0010); // Xdensity
+    outputStream.pushWord(0x0010); // Ydensity
     outputStream.pushWord(0x0000); // thumbnail size
+    
     // COM
+    /* To implement */
 
     // DQT
-    /* 0 = luminance
-       1 = chrominance */
+    quantiser.encodeHeaderQuantisationTables(outputStream);
+
     // SOF0
     outputStream.pushWord(markerStartOfFrame0SOF0);
     outputStream.pushWord(17); // length
@@ -80,6 +83,7 @@ void jpeg::Encoder::encodeHeader(BitmapImageRGB const& inputImage, BitStream& ou
     outputStream.pushByte(1); // Quantisation table
 
     // DHT
+    entropyEncoder.encodeHeaderEntropyTables(outputStream);
 
     // SOS 
     outputStream.pushWord(markerStartOfScanSegmentSOS);
@@ -87,13 +91,13 @@ void jpeg::Encoder::encodeHeader(BitmapImageRGB const& inputImage, BitStream& ou
     outputStream.pushByte(3); // Number of components
     // First component
     outputStream.pushByte(0); // ID
-    outputStream.pushByte(0); // Huffman table
+    outputStream.pushByte(0x00); // Huffman table
     // Second component
     outputStream.pushByte(1); // ID
-    outputStream.pushByte(1); // Huffman table
+    outputStream.pushByte(0x11); // Huffman table
     // Third component
     outputStream.pushByte(2); // ID
-    outputStream.pushByte(1); // Huffman table
+    outputStream.pushByte(0x11); // Huffman table
     // Skip bytes
     outputStream.pushWord(0x0000);
     outputStream.pushByte(0x00);
