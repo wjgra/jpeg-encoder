@@ -5,7 +5,7 @@ This is a collection of C++ classes that enable encoding of 24-bit bitmap images
 There are lots of extensions that I could add at some point in the future (e.g. progressive encoding, arithmetic encoding), but this seems feature-complete enough for now I'm happy to leave it for the near-future, critical bugs notwithstanding.
 
 ## Dependencies
-Bitmap loading is handled by SDL's loadImage function, as I was already using it in the two example to handle window creation and display of the results. Writing my own bitmap parser would be a relatively simple task, but I may be better off using one of the many header-only bitmap loaders.
+Bitmap loading is handled by SDL's loadImage function, as I was already using SDL for window creation. Writing my own bitmap parser would be a relatively simple task, but I may be better off using one of the many header-only bitmap loaders.
 
 Otherwise, the JPEG encoder-decoder classes in this repository only depend on the C++20 STL.
 
