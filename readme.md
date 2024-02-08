@@ -1,6 +1,6 @@
 # JPEG Encoding and Decoding Library
 ## Overview
-This is a collection of C++ classes that enable encoding of 24-bit bitmap images to baseline seqeuntial JPEGs as specified in [ITU T.81](https://www.w3.org/Graphics/JPEG/itu-t81.pdf) (link to PDF) and decoding such JPEGs to recover an approximation of the original bitmap. Please do not rely on this for anything important, it was primarily a fun learning exercise, and my first foray into the world of image compression. I prioritised 1) fun and 2) trying out C++17/20 features that I hadn't used before over speed, but it's fast enough to use interactively ([link to web-app](http://www.wjgrace.co.uk/projects/jpeg/jpeg.html)).
+This is a collection of C++ classes that enable encoding of 24-bit bitmap images to baseline sequential JPEGs as specified in [ITU T.81](https://www.w3.org/Graphics/JPEG/itu-t81.pdf) (link to PDF) and decoding such JPEGs to recover an approximation of the original bitmap. Please do not rely on this for anything important, it was primarily a fun learning exercise, and my first foray into the world of image compression. I prioritised 1) fun and 2) trying out C++17/20 features that I hadn't used before over speed, but it's fast enough to use interactively ([link to web-app](http://www.wjgrace.co.uk/projects/jpeg/jpeg.html)).
 
 There are lots of extensions that I could add at some point in the future (e.g. progressive encoding, arithmetic encoding), but this seems feature-complete enough for now I'm happy to leave it for the near-future, critical bugs notwithstanding.
 
