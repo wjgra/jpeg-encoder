@@ -17,7 +17,11 @@ Takes a single 24-bit RGB bitmap as input, encodes it as a JPEG, then decodes th
 
 Usage (parameters may be provided in any order):
 ```
-.\jpeg.exe -i [PATH_TO_INPUT_BMP] -o [OPTIONAL: PATH_TO_SAVE_JPEG] -q [OPTIONAL: QUALITY (default = 80)] -s [OPTIONAL DISPLAY_SCALE (default = 1)]
+.\jpeg.exe 
+    -i [PATH_TO_INPUT_BMP] (the input bitmap file for encoding)
+    OPTIONAL: -o [PATH_TO_SAVE_JPEG] (the path to output the resuling jpeg - defaults to 'img/out.jpg')
+    OPTIONAL: -q [QUALITY] (the quality value to use for encoding - defaults to 80) 
+    OPTIONAL: -s [DISPLAY_SCALE] (a multiplier which controls the size of the display window - defaults to 1)
 ```
 Sample compilation command:
 ```
