@@ -9,7 +9,7 @@ jpeg::BlockGrid::Block jpeg::ColourMapper::unmap(jpeg::ColourMappedBlock const& 
 }
 
 bool jpeg::ColourMapper::isLuminanceComponent(uint8_t component) const{
-    assert(component <= 3);
+    assert(component < 3);
     return componentIsLuminance(component);
 }
 

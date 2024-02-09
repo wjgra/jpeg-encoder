@@ -15,7 +15,13 @@ namespace jpeg{
     };
     class ColourMapper{
     public:
+        ColourMapper() = default;
+        ColourMapper(ColourMapper const&) = delete;
+        ColourMapper(ColourMapper const&&) = delete;
+        ColourMapper& operator=(ColourMapper const&) = delete;
+        ColourMapper& operator=(ColourMapper const&&) = delete;
         virtual ~ColourMapper() = default;
+    public:
         ColourMappedBlock map(BlockGrid::Block const& inputBlock) const;
         BlockGrid::Block unmap(ColourMappedBlock const& inputBlock) const;
         bool isLuminanceComponent(uint8_t component) const;
