@@ -8,14 +8,14 @@
 #include "bitmap_image.hpp"
 #include "block_grid.hpp"
 
-
 namespace jpeg{
     struct ColourMappedBlock{
         using ChannelBlock = std::array<uint8_t, BlockGrid::blockElements>;
-        std::array<ChannelBlock, 3> data;
+        std::array<ChannelBlock, 3> m_data;
     };
     class ColourMapper{
     public:
+        virtual ~ColourMapper() = default;
         ColourMappedBlock map(BlockGrid::Block const& inputBlock) const;
         BlockGrid::Block unmap(ColourMappedBlock const& inputBlock) const;
         bool isLuminanceComponent(uint8_t component) const;

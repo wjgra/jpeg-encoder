@@ -17,6 +17,7 @@ namespace jpeg{
 
     class DiscreteCosineTransformer{
     public:
+        virtual ~DiscreteCosineTransformer() = default;
         DCTChannelOutput transform(ColourMappedBlock::ChannelBlock const& inputChannel) const;
         ColourMappedBlock::ChannelBlock inverseTransform(DCTChannelOutput  const& inputChannel) const;
     protected:

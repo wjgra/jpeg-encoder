@@ -1,8 +1,11 @@
 #ifndef _JPEG_ENCODER_HPP_
 #define _JPEG_ENCODER_HPP_
 
+#include <iostream>
+#include <utility>
 #include <string>
 #include <chrono>
+#include <memory>
 
 #include "bitmap_image.hpp"
 #include "jpeg_image.hpp"
@@ -14,23 +17,39 @@
 #include "markers.hpp"
 
 namespace jpeg{
-    class Encoder{
+    class EncoderDecoder{
     public:
-        Encoder(BitmapImageRGB const& inputImage,
-                JPEGImage& outputImage,
-                ColourMapper const& colourMapper,
-                DiscreteCosineTransformer const& discreteCosineTransformer,
-                Quantiser const& quantiser,
-                EntropyEncoder const& entropyEncoder);
+        EncoderDecoder(EncoderDecoder const&) = delete;
+        EncoderDecoder(EncoderDecoder const&&) = delete;
+        EncoderDecoder& operator=(EncoderDecoder const&) = delete;
+        EncoderDecoder& operator=(EncoderDecoder const&&) = delete;
+        ~EncoderDecoder() = default;
+        EncoderDecoder(std::unique_ptr<ColourMapper> colourMapper,
+                       std::unique_ptr<DiscreteCosineTransformer> discreteCosineTransformer,
+                       std::unique_ptr<Quantiser> quantiser,
+                       std::unique_ptr<EntropyEncoder> entropyEncoder);
+        void encode(BitmapImageRGB const& inputImage, JPEGImage& outputImage);
+        void decode(JPEGImage inputImage, BitmapImageRGB& outputImage);
     private:
-        void encodeHeader(BitmapImageRGB const& inputImage, BitStream& outputStream, Quantiser const& quantiser, EntropyEncoder const& entropyEncoder) const;
-        void stuffAlignedBytes(BitStream& outputStream, size_t startOfScanData) const;
+        void encodeHeader(BitmapImageRGB const& inputImage, BitStream& outputStream, std::unique_ptr<Quantiser> const& quantiser, std::unique_ptr<EntropyEncoder> const& entropyEncoder) const;
+        void decodeHeader(BitStream const& inputStream, BitStreamReadProgress& readProgress, BitmapImageRGB& outputImage) const;
+        bool virtual supportsSaving() const = 0;
+    private:
+        std::unique_ptr<ColourMapper> m_colourMapper;
+        std::unique_ptr<DiscreteCosineTransformer> m_discreteCosineTransformer;
+        std::unique_ptr<Quantiser> m_quantiser;
+        std::unique_ptr<EntropyEncoder> m_entropyEncoder;
     };
 
-    class BaselineEncoder : public Encoder{
+    class BaselineEncoderDecoder final : public EncoderDecoder{
     public:
-        BaselineEncoder(BitmapImageRGB const& inputImage, JPEGImage& outputImage, int quality = 50);
+        BaselineEncoderDecoder(int quality) : EncoderDecoder(std::make_unique<RGBToYCbCrMapper>(), 
+                                                             std::make_unique<SeparatedDiscreteCosineTransformer>(), 
+                                                             std::make_unique<Quantiser>(quality), 
+                                                             std::make_unique<HuffmanEncoder>()){
+        }
+    private:
+        bool supportsSaving() const override {return true;}
     };
 }
-
 #endif

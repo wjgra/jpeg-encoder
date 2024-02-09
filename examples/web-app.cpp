@@ -11,9 +11,9 @@
 
 #include "window.hpp"
 #include "encoder.hpp"
-#include "decoder.hpp"
 
-/* This is similar to the encode-decode example, but has been adapted to make use of the HTML interface
+/* 
+   This is similar to the encode-decode example, but has been adapted to make use of the HTML interface
    defined in template.html. In Emscripten, the main loop is simulated by throwing a JavaScript exception, 
    then periodically calling a callback function. The difficulty is that this functions like a goto
    statement, so any automatic variables declared at the scope of emscripten_set_main_loop are not destroyed.
@@ -22,16 +22,9 @@
    To prevent the window being destroyed and recreated every time an encode-decode function is called, the 
    Window object is global. Similarly, to prevent images stored in the simulated filesystem being loaded
    multiple times (and possibly not freed due to GC at the C++/JS boundary, the input bitmaps are global too).
+
+   DO NOT BUILD FOR NON-EMSCRIPTEN TARGETS
 */
-
-  
-//   Compiles with no warnings:
-//   emcc examples/web-app.cpp common/*.cpp jpeg/src/*.cpp -o "jpeg.html" -W -Wall -Wextra -pedantic 
-//   -std=c++20 -sUSE_SDL=2 --shell-file template.html -I "C:\Users\wjgra\source\repos\emsdk\upstream\emscripten\cache\sysroot\include" 
-//   --preload-file img-cc/ -sALLOW_MEMORY_GROWTH=1 -sEXPORTED_RUNTIME_METHODS=[ccall] -sEXPORTED_FUNCTIONS=[_main,_malloc,_free] -O3
-//
-//   DO NOT BUILD FOR NON-EMSCRIPTEN TARGETS
-
 
 bool mainLoop(Window& window){
     SDL_Event event;
@@ -87,7 +80,8 @@ void encodeDecodeImage(jpeg::BitmapImageRGB const& inputBmp, int quality = 80){
 
     // Encode image as JPEG
     auto tStart = std::chrono::high_resolution_clock::now();
-    jpeg::BaselineEncoder enc(inputBmp, outputJpeg, quality);
+    jpeg::BaselineEncoderDecoder encoder(quality);
+    encoder.encode(inputBmp, outputJpeg);
     auto tEnd = std::chrono::high_resolution_clock::now();
 
     auto timeToEncode = 1e-3 * std::chrono::duration_cast<std::chrono::microseconds>(tEnd - tStart).count();
@@ -100,7 +94,7 @@ void encodeDecodeImage(jpeg::BitmapImageRGB const& inputBmp, int quality = 80){
     // Decode encoded JPEG image
     jpeg::BitmapImageRGB outputBmp;
     tStart = std::chrono::high_resolution_clock::now();
-    jpeg::BaselineDecoder dec(outputJpeg, outputBmp, quality);
+    encoder.decode(outputJpeg, outputBmp);
     tEnd = std::chrono::high_resolution_clock::now();
 
     auto timeToDecode = 1e-3 * std::chrono::duration_cast<std::chrono::microseconds>(tEnd - tStart).count();
@@ -163,16 +157,15 @@ extern "C" {
         std::cout << filename << "(" << mime_type << ") uploaded by user\n";
         lastUploadedImage = jpeg::BitmapImageRGB(reinterpret_cast<uint8_t const*>(buffer.data()), buffer.size());
         emscripten_cancel_main_loop();
-        int* mQuality = reinterpret_cast<int*>(args);
-        encodeDecodeImage(lastUploadedImage, *mQuality);
-        delete mQuality;
+        int* quality_ptr = reinterpret_cast<int*>(args);
+        encodeDecodeImage(lastUploadedImage, *quality_ptr);
+        delete quality_ptr;
         emscripten_set_main_loop_arg(&mainLoopCallback, &window, 0, true);
     }
 
     EMSCRIPTEN_KEEPALIVE void encodeDecodeImageUpload(int quality){
-        int* arg = new int(quality);
-        emscripten_browser_file::upload(".bmp", uploadedImageCallback, reinterpret_cast<void*>(arg));
-        //emscripten_browser_file::upload(".bmp", uploadedImageCallback, reinterpret_cast<void*>(&quality));
+        int* arg_ptr = new int(quality);
+        emscripten_browser_file::upload(".bmp", uploadedImageCallback, reinterpret_cast<void*>(arg_ptr));
     }
 
     EMSCRIPTEN_KEEPALIVE void downloadEncodedImage(){

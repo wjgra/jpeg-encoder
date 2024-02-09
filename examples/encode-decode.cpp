@@ -11,7 +11,7 @@
 
 #include "window.hpp"
 #include "encoder.hpp"
-#include "decoder.hpp"
+// #include "decoder.hpp"
 
 bool mainLoop(Window& window){
     SDL_Event event;
@@ -101,7 +101,8 @@ int main(int argc, char *argv[]){
     // Encode image as JPEG
     jpeg::JPEGImage outputJpeg;
     auto tStart = std::chrono::high_resolution_clock::now();
-    jpeg::BaselineEncoder enc(inputBmp, outputJpeg, qualityValue);
+    jpeg::BaselineEncoderDecoder encoder(qualityValue);
+    encoder.encode(inputBmp, outputJpeg);
     auto tEnd = std::chrono::high_resolution_clock::now();
 
     auto timeToEncode = 1e-3 * std::chrono::duration_cast<std::chrono::microseconds>(tEnd - tStart).count();
@@ -114,7 +115,7 @@ int main(int argc, char *argv[]){
     // Decode encoded JPEG image
     jpeg::BitmapImageRGB outputBmp;
     tStart = std::chrono::high_resolution_clock::now();
-    jpeg::BaselineDecoder dec(outputJpeg, outputBmp, qualityValue);
+    encoder.decode(outputJpeg, outputBmp);
     tEnd = std::chrono::high_resolution_clock::now();
 
     auto timeToDecode = 1e-3 * std::chrono::duration_cast<std::chrono::microseconds>(tEnd - tStart).count();

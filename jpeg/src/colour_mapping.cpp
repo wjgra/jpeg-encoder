@@ -17,9 +17,9 @@ jpeg::ColourMappedBlock jpeg::RGBToRGBMapper::applyMapping(jpeg::BlockGrid::Bloc
     ColourMappedBlock output;
     // Passthrough mapping
     for (size_t i = 0 ; i < inputBlock.data.size() ; ++i){
-        output.data[0][i] = inputBlock.data[i].r;
-        output.data[1][i] = inputBlock.data[i].g;
-        output.data[2][i] = inputBlock.data[i].b;
+        output.m_data[0][i] = inputBlock.data[i].r;
+        output.m_data[1][i] = inputBlock.data[i].g;
+        output.m_data[2][i] = inputBlock.data[i].b;
     }
     return output;
 }
@@ -27,10 +27,10 @@ jpeg::ColourMappedBlock jpeg::RGBToRGBMapper::applyMapping(jpeg::BlockGrid::Bloc
 jpeg::BlockGrid::Block jpeg::RGBToRGBMapper::reverseMapping(ColourMappedBlock const& inputBlock) const{
     BlockGrid::Block output;
     // Passthrough mapping
-    for (size_t i = 0 ; i < inputBlock.data[0].size() ; ++i){
-        output.data[i].r = inputBlock.data[0][i];
-        output.data[i].g = inputBlock.data[1][i];
-        output.data[i].b = inputBlock.data[2][i];
+    for (size_t i = 0 ; i < inputBlock.m_data[0].size() ; ++i){
+        output.data[i].r = inputBlock.m_data[0][i];
+        output.data[i].g = inputBlock.m_data[1][i];
+        output.data[i].b = inputBlock.m_data[2][i];
     }
     return output;
 }
@@ -59,9 +59,9 @@ jpeg::ColourMappedBlock jpeg::RGBToYCbCrMapper::applyMapping(jpeg::BlockGrid::Bl
         return mapToRange(128 + 0.5 * rgb.r - 0.418688 * rgb.g - 0.081312 * rgb.b);
     };
     for (size_t i = 0 ; i < inputBlock.data.size() ; ++i){
-        output.data[0][i] = Y(inputBlock.data[i]);
-        output.data[1][i] = Cb(inputBlock.data[i]);
-        output.data[2][i] = Cr(inputBlock.data[i]);
+        output.m_data[0][i] = Y(inputBlock.data[i]);
+        output.m_data[1][i] = Cb(inputBlock.data[i]);
+        output.m_data[2][i] = Cr(inputBlock.data[i]);
     }
     return output;
 }
@@ -83,10 +83,10 @@ jpeg::BlockGrid::Block jpeg::RGBToYCbCrMapper::reverseMapping(ColourMappedBlock 
     auto B = [mapToRange](uint8_t Y, uint8_t Cb/* , uint8_t Cr */){
         return mapToRange(Y + 1.772 * (Cb - 128));
     };
-    for (size_t i = 0 ; i < inputBlock.data[0].size() ; ++i){
-        output.data[i].r = R(inputBlock.data[0][i]/* ,inputBlock.data[1][i] */,inputBlock.data[2][i]);
-        output.data[i].g = G(inputBlock.data[0][i],inputBlock.data[1][i],inputBlock.data[2][i]);
-        output.data[i].b = B(inputBlock.data[0][i],inputBlock.data[1][i]/* ,inputBlock.data[2][i] */);
+    for (size_t i = 0 ; i < inputBlock.m_data[0].size() ; ++i){
+        output.data[i].r = R(inputBlock.m_data[0][i]/* ,inputBlock.data[1][i] */,inputBlock.m_data[2][i]);
+        output.data[i].g = G(inputBlock.m_data[0][i],inputBlock.m_data[1][i],inputBlock.m_data[2][i]);
+        output.data[i].b = B(inputBlock.m_data[0][i],inputBlock.m_data[1][i]/* ,inputBlock.data[2][i] */);
     }
     return output;
 }

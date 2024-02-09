@@ -31,6 +31,7 @@ namespace jpeg{
 
     class EntropyEncoder{
     public:
+        virtual ~EntropyEncoder() = default;
         void encode(QuantisedChannelOutput const& input, int16_t& lastDCValue, BitStream& outputStream, bool isLuminanceComponent) const;
         QuantisedChannelOutput decode(BitStream const& inputStream, BitStreamReadProgress& readProgress, int16_t& lastDCValue, bool isLuminanceComponent) const;
         virtual void encodeHeaderEntropyTables(BitStream& outputStream) const = 0;
