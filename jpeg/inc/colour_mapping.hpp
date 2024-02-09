@@ -9,9 +9,9 @@
 #include "block_grid.hpp"
 
 namespace jpeg{
-    struct ColourMappedBlock{
-        using ChannelBlock = std::array<uint8_t, BlockGrid::blockElements>;
-        std::array<ChannelBlock, 3> m_data;
+    struct ColourMappedBlockData{
+        using BlockChannelData = std::array<uint8_t, BlockGrid::blockElements>;
+        std::array<BlockChannelData, 3> m_data;
     };
     class ColourMapper{
     public:
@@ -22,26 +22,26 @@ namespace jpeg{
         ColourMapper& operator=(ColourMapper const&&) = delete;
         virtual ~ColourMapper() = default;
     public:
-        ColourMappedBlock map(BlockGrid::Block const& inputBlock) const;
-        BlockGrid::Block unmap(ColourMappedBlock const& inputBlock) const;
+        ColourMappedBlockData map(BlockGrid::Block const& inputBlock) const;
+        BlockGrid::Block unmap(ColourMappedBlockData const& inputBlock) const;
         bool isLuminanceComponent(uint8_t component) const;
     protected:
-        virtual ColourMappedBlock applyMapping(BlockGrid::Block const& inputBlock) const = 0;
-        virtual BlockGrid::Block reverseMapping(ColourMappedBlock const& inputBlock) const = 0;
+        virtual ColourMappedBlockData applyMapping(BlockGrid::Block const& inputBlock) const = 0;
+        virtual BlockGrid::Block reverseMapping(ColourMappedBlockData const& inputBlock) const = 0;
         virtual bool componentIsLuminance(uint8_t component) const = 0;
     };
 
     class RGBToRGBMapper : public ColourMapper{
     protected:
-        ColourMappedBlock applyMapping(BlockGrid::Block const& inputBlock) const override;
-        BlockGrid::Block reverseMapping(ColourMappedBlock const& inputBlock) const override;
+        ColourMappedBlockData applyMapping(BlockGrid::Block const& inputBlock) const override;
+        BlockGrid::Block reverseMapping(ColourMappedBlockData const& inputBlock) const override;
         bool componentIsLuminance(uint8_t component) const override;
     };
 
     class RGBToYCbCrMapper : public ColourMapper{
     protected:
-        ColourMappedBlock applyMapping(BlockGrid::Block const& inputBlock) const override;
-        BlockGrid::Block reverseMapping(ColourMappedBlock const& inputBlock) const override;
+        ColourMappedBlockData applyMapping(BlockGrid::Block const& inputBlock) const override;
+        BlockGrid::Block reverseMapping(ColourMappedBlockData const& inputBlock) const override;
         bool componentIsLuminance(uint8_t component) const override;
     };
 }

@@ -1,10 +1,10 @@
 #include "colour_mapping.hpp"
 
-jpeg::ColourMappedBlock jpeg::ColourMapper::map(jpeg::BlockGrid::Block const& inputBlock) const{
+jpeg::ColourMappedBlockData jpeg::ColourMapper::map(jpeg::BlockGrid::Block const& inputBlock) const{
     return applyMapping(inputBlock);
 }
 
-jpeg::BlockGrid::Block jpeg::ColourMapper::unmap(jpeg::ColourMappedBlock const& inputBlock) const{
+jpeg::BlockGrid::Block jpeg::ColourMapper::unmap(jpeg::ColourMappedBlockData const& inputBlock) const{
     return reverseMapping(inputBlock);
 }
 
@@ -13,8 +13,8 @@ bool jpeg::ColourMapper::isLuminanceComponent(uint8_t component) const{
     return componentIsLuminance(component);
 }
 
-jpeg::ColourMappedBlock jpeg::RGBToRGBMapper::applyMapping(jpeg::BlockGrid::Block const& inputBlock) const{
-    ColourMappedBlock output;
+jpeg::ColourMappedBlockData jpeg::RGBToRGBMapper::applyMapping(jpeg::BlockGrid::Block const& inputBlock) const{
+    ColourMappedBlockData output;
     // Passthrough mapping
     for (size_t i = 0 ; i < inputBlock.data.size() ; ++i){
         output.m_data[0][i] = inputBlock.data[i].r;
@@ -24,7 +24,7 @@ jpeg::ColourMappedBlock jpeg::RGBToRGBMapper::applyMapping(jpeg::BlockGrid::Bloc
     return output;
 }
 
-jpeg::BlockGrid::Block jpeg::RGBToRGBMapper::reverseMapping(ColourMappedBlock const& inputBlock) const{
+jpeg::BlockGrid::Block jpeg::RGBToRGBMapper::reverseMapping(ColourMappedBlockData const& inputBlock) const{
     BlockGrid::Block output;
     // Passthrough mapping
     for (size_t i = 0 ; i < inputBlock.m_data[0].size() ; ++i){
@@ -41,8 +41,8 @@ bool jpeg::RGBToRGBMapper::componentIsLuminance(uint8_t component) const{
     return true;
 }
 
-jpeg::ColourMappedBlock jpeg::RGBToYCbCrMapper::applyMapping(jpeg::BlockGrid::Block const& inputBlock) const{
-    ColourMappedBlock output;
+jpeg::ColourMappedBlockData jpeg::RGBToYCbCrMapper::applyMapping(jpeg::BlockGrid::Block const& inputBlock) const{
+    ColourMappedBlockData output;
     // Conversion from https://en.wikipedia.org/wiki/YCbCr#JPEG_conversion
     // Range mapping from ITU-T T.871
     auto round = [](double in){return std::floor(in + 0.5);};
@@ -66,7 +66,7 @@ jpeg::ColourMappedBlock jpeg::RGBToYCbCrMapper::applyMapping(jpeg::BlockGrid::Bl
     return output;
 }
 
-jpeg::BlockGrid::Block jpeg::RGBToYCbCrMapper::reverseMapping(ColourMappedBlock const& inputBlock) const{
+jpeg::BlockGrid::Block jpeg::RGBToYCbCrMapper::reverseMapping(ColourMappedBlockData const& inputBlock) const{
     BlockGrid::Block output;
     // Reverse conversion from https://en.wikipedia.org/wiki/YCbCr#JPEG_conversion
     // Range mapping from ITU-T T.871

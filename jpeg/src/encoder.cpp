@@ -19,11 +19,11 @@ void jpeg::EncoderDecoder::encode(BitmapImageRGB const& inputImage, JPEGImage& o
         InputBlockGrid blockGrid(inputImage);
         std::array<int16_t, 3> lastDCValues = {0,0,0};
         for (auto const& block : blockGrid){
-            ColourMappedBlock colourMappedBlock = m_colourMapper->map(block);
+            ColourMappedBlockData colourMappedBlock = m_colourMapper->map(block);
             for (size_t channel = 0 ; channel < 3 ; ++channel){
-                DCTChannelOutput dctData = m_discreteCosineTransformer->transform(colourMappedBlock.m_data[channel]);
-                QuantisedChannelOutput quantisedOutput = m_quantiser->quantise(dctData, m_colourMapper->isLuminanceComponent(channel));
-                m_entropyEncoder->encode(quantisedOutput, lastDCValues[channel], outputImage.compressedImageData, m_colourMapper->isLuminanceComponent(channel));
+                DctBlockChannelData dctData = m_discreteCosineTransformer->transform(colourMappedBlock.m_data[channel]);
+                QuantisedChannelOutput quantisedData = m_quantiser->quantise(dctData, m_colourMapper->isLuminanceComponent(channel));
+                m_entropyEncoder->encode(quantisedData, lastDCValues[channel], outputImage.compressedImageData, m_colourMapper->isLuminanceComponent(channel));
             }
         }
         outputImage.compressedImageData.stuffBytes(startOfScanData);
@@ -50,11 +50,11 @@ void jpeg::EncoderDecoder::decode(JPEGImage inputImage, BitmapImageRGB& outputIm
         // Decode image block-by-block
         std::array<int16_t, 3> lastDCValues = {0,0,0};
         while (!outputBlockGrid.atEnd()){
-            ColourMappedBlock thisBlock;
+            ColourMappedBlockData thisBlock;
             for (size_t channel = 0 ; channel < 3 ; ++channel){
                 QuantisedChannelOutput quantisedData = m_entropyEncoder->decode(inputImage.compressedImageData, readProgress, lastDCValues[channel], m_colourMapper->isLuminanceComponent(channel));
-                DCTChannelOutput dctData = m_quantiser->dequantise(quantisedData, m_colourMapper->isLuminanceComponent(channel));
-                ColourMappedBlock::ChannelBlock colourMappedChannelData = m_discreteCosineTransformer->inverseTransform(dctData);
+                DctBlockChannelData dctData = m_quantiser->dequantise(quantisedData, m_colourMapper->isLuminanceComponent(channel));
+                ColourMappedBlockData::BlockChannelData colourMappedChannelData = m_discreteCosineTransformer->inverseTransform(dctData);
                 thisBlock.m_data[channel] = colourMappedChannelData;
             }
         outputBlockGrid.processNextBlock(m_colourMapper->unmap(thisBlock));

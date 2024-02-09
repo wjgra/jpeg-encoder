@@ -54,31 +54,31 @@ jpeg::Quantiser::Quantiser(int quality){
     }
 }
 
-jpeg::QuantisedChannelOutput jpeg::Quantiser::quantise(DCTChannelOutput const& dctInput, bool useLuminanceMatrix) const{
+jpeg::QuantisedChannelOutput jpeg::Quantiser::quantise(DctBlockChannelData const& dctInput, bool useLuminanceMatrix) const{
     QuantisedChannelOutput output;
     if (useLuminanceMatrix){
-        for (size_t i = 0 ; i < dctInput.data.size() ; ++i){
-            output.data[i] = std::floor(0.5 + dctInput.data[i]/luminanceQuantisationMatrix[i]);
+        for (size_t i = 0 ; i < dctInput.m_data.size() ; ++i){
+            output.data[i] = std::floor(0.5 + dctInput.m_data[i]/luminanceQuantisationMatrix[i]);
         }
     }
     else{
-        for (size_t i = 0 ; i < dctInput.data.size() ; ++i){
-            output.data[i] = std::floor(0.5 + dctInput.data[i]/chrominanceQuantisationMatrix[i]);
+        for (size_t i = 0 ; i < dctInput.m_data.size() ; ++i){
+            output.data[i] = std::floor(0.5 + dctInput.m_data[i]/chrominanceQuantisationMatrix[i]);
         }
     }
     return output;
 }
 
-jpeg::DCTChannelOutput jpeg::Quantiser::dequantise(jpeg::QuantisedChannelOutput const& quantisedChannelData, bool useLuminanceMatrix) const{
-    DCTChannelOutput output;
+jpeg::DctBlockChannelData jpeg::Quantiser::dequantise(jpeg::QuantisedChannelOutput const& quantisedChannelData, bool useLuminanceMatrix) const{
+    DctBlockChannelData output;
     if (useLuminanceMatrix){
         for (size_t i = 0 ; i < quantisedChannelData.data.size() ; ++i){
-            output.data[i] = quantisedChannelData.data[i] * float(luminanceQuantisationMatrix[i]);
+            output.m_data[i] = quantisedChannelData.data[i] * float(luminanceQuantisationMatrix[i]);
         }
     }
     else{
         for (size_t i = 0 ; i < quantisedChannelData.data.size() ; ++i){
-            output.data[i] = quantisedChannelData.data[i] * float(chrominanceQuantisationMatrix[i]);
+            output.m_data[i] = quantisedChannelData.data[i] * float(chrominanceQuantisationMatrix[i]);
         }
     }
     return output;

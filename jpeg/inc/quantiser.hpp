@@ -16,8 +16,8 @@ namespace jpeg{
     class Quantiser{
     public:
         Quantiser(int quality = 50);
-        QuantisedChannelOutput quantise(DCTChannelOutput const& dctInput, bool useLuminanceMatrix) const;
-        DCTChannelOutput dequantise(QuantisedChannelOutput const& quantisedInput, bool useLuminanceMatrix) const;
+        QuantisedChannelOutput quantise(DctBlockChannelData const& dctInput, bool useLuminanceMatrix) const;
+        DctBlockChannelData dequantise(QuantisedChannelOutput const& quantisedInput, bool useLuminanceMatrix) const;
         void encodeHeaderQuantisationTables(BitStream& outputStream) const;
         /* Issue: include decoding for non-default tables */
     private:
