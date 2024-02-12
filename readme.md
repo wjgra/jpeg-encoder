@@ -1,6 +1,6 @@
 # JPEG Encoding and Decoding Library
 ## Overview
-This is a collection of C++ classes that enable encoding of 24-bit bitmap images to baseline sequential JPEGs as specified in [ITU T.81](https://www.w3.org/Graphics/JPEG/itu-t81.pdf) (link to PDF) and decoding such JPEGs to recover an approximation of the original bitmap. Please do not rely on this for anything important, it was primarily a fun learning exercise, and my first foray into the world of image compression. I prioritised 1) fun and 2) trying out C++17/20 features that I hadn't used before over speed, but it's fast enough to use interactively ([link to web-app](http://www.wjgrace.co.uk/projects/jpeg/jpeg.html)).
+This is small library that enables encoding of 24-bit bitmap images to baseline sequential JPEGs as specified in [ITU T.81](https://www.w3.org/Graphics/JPEG/itu-t81.pdf) (link to PDF) and decoding such JPEGs to recover an approximation of the original bitmap. Please do not rely on this for anything important, it was primarily a fun learning exercise, and my first foray into the world of image compression. I prioritised 1) fun and 2) trying out C++17/20 features that I hadn't used before over speed, but it's fast enough to use interactively ([link to web-app](http://www.wjgrace.co.uk/projects/jpeg/jpeg.html)).
 
 There are plenty of extensions that I could add at some point in the future (e.g. support for single-channel [i.e. greyscale] image encoding, progressive encoding, arithmetic encoding), but this seems complete enough I'm happy to leave it as it stands for now, critical bugs notwithstanding.
 
@@ -33,7 +33,7 @@ encoder.decoder(outputJpeg, decodedBmp);
 
 ### Extension
 
-The Encoder class has been designed to allow for easy extension/modification, using dependency injection to reduce ccoupling between the individual components of the encoder. In particular, the Encoder class contains member unique_ptrs to each of the colour mapped, discrete cosine transformer, quantiser and entropy encoder. In this way, custom objects may be created either by passing unique_ptrs directly to the Encoder constructor, or by inheritance.
+The `Encoder` class has been designed to allow for easy extension, using dependency injection to reduce coupling between the individual components of the encoder. In particular, the `Encoder` class contains member `unique_ptr`s to each of the colour mapper, discrete cosine transformer, quantiser and entropy encoder. In this way, custom `Encoder` objects may be created either by passing unique_ptrs directly to the constructor, or by inheritance.
 
 Example extension to use RGB-to-RGB mapping prior to DCT application (not supported for saving in standard JPEG file interchange format) instead of RGB-to-YCbCr mapping:
 
@@ -51,7 +51,7 @@ class MyNewEncoder final : public Encoder{
 ```
 
 ## Dependencies
-Bitmap loading is handled by SDL's loadImage function, as I was already using SDL for window creation. Writing my own bitmap parser would be a relatively simple task, but I may be better off using one of the many header-only bitmap loaders.
+Bitmap loading is handled by SDL's loadImage function, as I was already using SDL for window creation. It would be a good idea to either write my own bitmap parser at some point, or to use one of the many header-only libraries that already exist for this purpose.
 
 Otherwise, the classes in this library only depend on the C++20 STL.
 
