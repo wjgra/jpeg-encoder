@@ -80,7 +80,7 @@ void encodeDecodeImage(jpeg::BitmapImageRGB const& inputBmp, int quality = 80){
 
     // Encode image as JPEG
     auto tStart = std::chrono::high_resolution_clock::now();
-    jpeg::BaselineEncoderDecoder encoder(quality);
+    jpeg::BaselineEncoder encoder(quality);
     encoder.encode(inputBmp, outputJpeg);
     auto tEnd = std::chrono::high_resolution_clock::now();
 

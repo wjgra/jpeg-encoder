@@ -2,7 +2,7 @@
 #include "encoder.hpp"
 
 
-jpeg::EncoderDecoder::EncoderDecoder(std::unique_ptr<ColourMapper> colourMapper,
+jpeg::Encoder::Encoder(std::unique_ptr<ColourMapper> colourMapper,
                                      std::unique_ptr<DiscreteCosineTransformer> discreteCosineTransformer,
                                      std::unique_ptr<Quantiser> quantiser,
                                      std::unique_ptr<EntropyEncoder> entropyEncoder) : m_colourMapper{std::move(colourMapper)},
@@ -11,7 +11,7 @@ jpeg::EncoderDecoder::EncoderDecoder(std::unique_ptr<ColourMapper> colourMapper,
                                                                                        m_entropyEncoder{std::move(entropyEncoder)}{
 }
 
-void jpeg::EncoderDecoder::encode(BitmapImageRGB const& inputImage, JPEGImage& outputImage){
+void jpeg::Encoder::encode(BitmapImageRGB const& inputImage, JPEGImage& outputImage){
     try{
         outputImage.m_compressedImageData.clearStream();
         encodeHeader(inputImage, outputImage.m_compressedImageData, m_quantiser, m_entropyEncoder);
@@ -41,7 +41,7 @@ void jpeg::EncoderDecoder::encode(BitmapImageRGB const& inputImage, JPEGImage& o
     }
 }
 
-void jpeg::EncoderDecoder::decode(JPEGImage inputImage, BitmapImageRGB& outputImage){
+void jpeg::Encoder::decode(JPEGImage inputImage, BitmapImageRGB& outputImage){
     try{
         OutputBlockGrid outputBlockGrid(inputImage.m_width, inputImage.m_height);
         BitStreamReadProgress readProgress{};
@@ -71,7 +71,7 @@ void jpeg::EncoderDecoder::decode(JPEGImage inputImage, BitmapImageRGB& outputIm
 }
 
 /* Issue: currently hardcoded with baseline parameters*/
-void jpeg::EncoderDecoder::encodeHeader(BitmapImageRGB const& inputImage, BitStream& outputStream, std::unique_ptr<Quantiser> const& quantiser, std::unique_ptr<EntropyEncoder> const& entropyEncoder) const {
+void jpeg::Encoder::encodeHeader(BitmapImageRGB const& inputImage, BitStream& outputStream, std::unique_ptr<Quantiser> const& quantiser, std::unique_ptr<EntropyEncoder> const& entropyEncoder) const {
     // SOI
     outputStream.pushWord(markerStartOfImageSegmentSOI);
 
@@ -137,7 +137,7 @@ void jpeg::EncoderDecoder::encodeHeader(BitmapImageRGB const& inputImage, BitStr
     outputStream.pushByte(0x00);
 }
 
-void jpeg::EncoderDecoder::decodeHeader(BitStream const& inputStream, BitStreamReadProgress& readProgress, BitmapImageRGB& outputImage) const{
+void jpeg::Encoder::decodeHeader(BitStream const& inputStream, BitStreamReadProgress& readProgress, BitmapImageRGB& outputImage) const{
     if (inputStream.readNextAlignedWord(readProgress) != markerStartOfImageSegmentSOI){
         throw std::runtime_error("Failed to find SOI marker");
     }

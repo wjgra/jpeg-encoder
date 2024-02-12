@@ -2,7 +2,53 @@
 ## Overview
 This is a collection of C++ classes that enable encoding of 24-bit bitmap images to baseline sequential JPEGs as specified in [ITU T.81](https://www.w3.org/Graphics/JPEG/itu-t81.pdf) (link to PDF) and decoding such JPEGs to recover an approximation of the original bitmap. Please do not rely on this for anything important, it was primarily a fun learning exercise, and my first foray into the world of image compression. I prioritised 1) fun and 2) trying out C++17/20 features that I hadn't used before over speed, but it's fast enough to use interactively ([link to web-app](http://www.wjgrace.co.uk/projects/jpeg/jpeg.html)).
 
-There are lots of extensions that I could add at some point in the future (e.g. progressive encoding, arithmetic encoding), but this seems feature-complete enough for now I'm happy to leave it for the near-future, critical bugs notwithstanding.
+There are plenty of extensions that I could add at some point in the future (e.g. support for single-channel [i.e. greyscale] image encoding, progressive encoding, arithmetic encoding), but this seems complete enough I'm happy to leave it as it stands for now, critical bugs notwithstanding.
+
+### Usage
+
+Example usage with a baseline encoder:
+
+```
+#include "encoder.hpp"
+
+// Load input image
+jpeg::BitmapImageRGB inputBmp("path_to_input\my_image.bmp");
+
+// Create a new baseline encoder-decoder
+int qualityValue = 75; // Integer quality value for use in encoding, limited to between 1 and 100
+jpeg::BaselineEncoder encoder(qualityValue);
+
+// Encode as JPEG
+jpeg::JPEGImage outputJpeg;
+encoder.encode(inputBmp, outputJpeg);
+
+// Save JPEG to file
+outputJpeg.saveToFile("path_to_output\m_image.jpg");
+
+// Decode JPEG to bitmap
+jpeg::BitmapImageRGB decodedBmp;
+encoder.decoder(outputJpeg, decodedBmp);
+    
+```
+
+### Extension
+
+The Encoder class has been designed to allow for easy extension/modification, using dependency injection to reduce ccoupling between the individual components of the encoder. In particular, the Encoder class contains member unique_ptrs to each of the colour mapped, discrete cosine transformer, quantiser and entropy encoder. In this way, custom objects may be created either by passing unique_ptrs directly to the Encoder constructor, or by inheritance.
+
+Example extension to use RGB-to-RGB mapping prior to DCT application (not supported for saving in standard JPEG file interchange format) instead of RGB-to-YCbCr mapping:
+
+```
+class MyNewEncoder final : public Encoder{
+    public:
+        MyNewEncoder(int quality) : Encoder(std::make_unique<RGBToRGBMapper>(), 
+                                            std::make_unique<SeparatedDiscreteCosineTransformer>(), 
+                                            std::make_unique<Quantiser>(quality), 
+                                            std::make_unique<HuffmanEncoder>()){
+        }
+    private:
+        bool supportsSaving() const override {return false;}
+    };
+```
 
 ## Dependencies
 Bitmap loading is handled by SDL's loadImage function, as I was already using SDL for window creation. Writing my own bitmap parser would be a relatively simple task, but I may be better off using one of the many header-only bitmap loaders.

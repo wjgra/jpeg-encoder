@@ -17,14 +17,14 @@
 #include "markers.hpp"
 
 namespace jpeg{
-    class EncoderDecoder{
+    class Encoder{
     public:
-        EncoderDecoder(EncoderDecoder const&) = delete;
-        EncoderDecoder(EncoderDecoder const&&) = delete;
-        EncoderDecoder& operator=(EncoderDecoder const&) = delete;
-        EncoderDecoder& operator=(EncoderDecoder const&&) = delete;
-        ~EncoderDecoder() = default;
-        EncoderDecoder(std::unique_ptr<ColourMapper> colourMapper,
+        Encoder(Encoder const&) = delete;
+        Encoder(Encoder const&&) = delete;
+        Encoder& operator=(Encoder const&) = delete;
+        Encoder& operator=(Encoder const&&) = delete;
+        ~Encoder() = default;
+        Encoder(std::unique_ptr<ColourMapper> colourMapper,
                        std::unique_ptr<DiscreteCosineTransformer> discreteCosineTransformer,
                        std::unique_ptr<Quantiser> quantiser,
                        std::unique_ptr<EntropyEncoder> entropyEncoder);
@@ -41,9 +41,9 @@ namespace jpeg{
         std::unique_ptr<EntropyEncoder> m_entropyEncoder;
     };
 
-    class BaselineEncoderDecoder final : public EncoderDecoder{
+    class BaselineEncoder final : public Encoder{
     public:
-        BaselineEncoderDecoder(int quality) : EncoderDecoder(std::make_unique<RGBToYCbCrMapper>(), 
+        BaselineEncoder(int quality) : Encoder(std::make_unique<RGBToYCbCrMapper>(), 
                                                              std::make_unique<SeparatedDiscreteCosineTransformer>(), 
                                                              std::make_unique<Quantiser>(quality), 
                                                              std::make_unique<HuffmanEncoder>()){

@@ -101,7 +101,7 @@ int main(int argc, char *argv[]){
     // Encode image as JPEG
     jpeg::JPEGImage outputJpeg;
     auto tStart = std::chrono::high_resolution_clock::now();
-    jpeg::BaselineEncoderDecoder encoder(qualityValue);
+    jpeg::BaselineEncoder encoder(qualityValue);
     encoder.encode(inputBmp, outputJpeg);
     auto tEnd = std::chrono::high_resolution_clock::now();
 
