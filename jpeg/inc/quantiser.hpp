@@ -4,7 +4,7 @@
 #include <cmath>
 
 #include "discrete_cosine_transform.hpp"
-#include "bitstream.hpp"
+#include "bit_stream.hpp"
 #include "markers.hpp"
 
 namespace jpeg{

@@ -13,7 +13,7 @@
 #include <numeric>
 
 #include "quantiser.hpp"
-#include "bitstream.hpp"
+#include "bit_stream.hpp"
 #include "block_grid.hpp"
 #include "markers.hpp"
 

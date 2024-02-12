@@ -17,7 +17,7 @@ public:
     uint8_t const static blockSize = 8; // Issue: include support for downsampling (e.g. via 16x16 blocks)
     uint8_t const static blockElements = blockSize * blockSize;
     struct Block{
-        std::array<BitmapImageRGB::PixelData, blockElements> data;
+        std::array<BitmapImageRGB::PixelData, blockElements> m_blockPixelData;
     };
 };
 class InputBlockGrid : public BlockGrid{
@@ -31,17 +31,17 @@ class InputBlockGrid : public BlockGrid{
             using underlying_pointer = underlying_type const *;
             using iterator_category = std::input_iterator_tag;
         private:
-            underlying_pointer ptr; // Points to first (i.e. upper-left) pixel in block
-            uint16_t blockRowPos, blockColPos; // Position in block-rows and block-columns
-            uint16_t gridWidth, gridHeight;
+            underlying_pointer m_ptr; // Points to first (i.e. upper-left) pixel in block
+            uint16_t m_blockRowPos, m_blockColPos; // Position in block-rows and block-columns
+            uint16_t m_gridWidth, m_gridHeight;
         public:
             explicit BlockIterator() = default;
             BlockIterator(underlying_pointer p, uint16_t w, uint16_t h);
             value_type operator*() const;
             BlockIterator& operator++();
             BlockIterator operator++(int);
-            friend bool operator==(BlockIterator const& a, BlockIterator const& b){return a.ptr == b.ptr;}
-            friend bool operator!=(BlockIterator const& a, BlockIterator const& b){return a.ptr != b.ptr;}
+            friend bool operator==(BlockIterator const& a, BlockIterator const& b){return a.m_ptr == b.m_ptr;}
+            friend bool operator!=(BlockIterator const& a, BlockIterator const& b){return a.m_ptr != b.m_ptr;}
             bool isLastCol() const;
             bool isLastRow() const;
             underlying_pointer getDataPtr() const;
@@ -52,15 +52,15 @@ class InputBlockGrid : public BlockGrid{
         BlockIterator begin() const;
         BlockIterator end() const;
     private:
-        BitmapImageRGB const& imageData;
+        BitmapImageRGB const& m_imageData;
     };
 
     class OutputBlockGrid : public BlockGrid{
     private:
-        BitmapImageRGB output;
-        InputBlockGrid blockGrid;
-        InputBlockGrid::BlockIterator currentBlock;
-        uint16_t const gridWidth, gridHeight;
+        BitmapImageRGB m_output;
+        InputBlockGrid m_blockGrid;
+        InputBlockGrid::BlockIterator m_currentBlock;
+        uint16_t const m_gridWidth, m_gridHeight;
     public:
         OutputBlockGrid() = delete;
         OutputBlockGrid(uint16_t width, uint16_t height);

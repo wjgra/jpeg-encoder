@@ -7,7 +7,7 @@
 #include <string>
 #include <fstream>
 
-#include "bitstream.hpp"
+#include "bit_stream.hpp"
 
 namespace jpeg{
     /* Stores a JPEG image */
