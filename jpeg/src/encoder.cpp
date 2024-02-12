@@ -13,9 +13,9 @@ jpeg::EncoderDecoder::EncoderDecoder(std::unique_ptr<ColourMapper> colourMapper,
 
 void jpeg::EncoderDecoder::encode(BitmapImageRGB const& inputImage, JPEGImage& outputImage){
     try{
-        outputImage.compressedImageData.clearStream();
-        encodeHeader(inputImage, outputImage.compressedImageData, m_quantiser, m_entropyEncoder);
-        size_t startOfScanData = outputImage.compressedImageData.getSize();
+        outputImage.m_compressedImageData.clearStream();
+        encodeHeader(inputImage, outputImage.m_compressedImageData, m_quantiser, m_entropyEncoder);
+        size_t startOfScanData = outputImage.m_compressedImageData.getSize();
         InputBlockGrid blockGrid(inputImage);
         std::array<int16_t, 3> lastDCValues = {0,0,0};
         for (auto const& block : blockGrid){
@@ -23,18 +23,18 @@ void jpeg::EncoderDecoder::encode(BitmapImageRGB const& inputImage, JPEGImage& o
             for (size_t channel = 0 ; channel < 3 ; ++channel){
                 DctBlockChannelData dctData = m_discreteCosineTransformer->transform(colourMappedBlock.m_data[channel]);
                 QuantisedBlockChannelData quantisedData = m_quantiser->quantise(dctData, m_colourMapper->isLuminanceComponent(channel));
-                m_entropyEncoder->encode(quantisedData, lastDCValues[channel], outputImage.compressedImageData, m_colourMapper->isLuminanceComponent(channel));
+                m_entropyEncoder->encode(quantisedData, lastDCValues[channel], outputImage.m_compressedImageData, m_colourMapper->isLuminanceComponent(channel));
             }
         }
-        outputImage.compressedImageData.stuffBytes(startOfScanData);
+        outputImage.m_compressedImageData.stuffBytes(startOfScanData);
         // Push end of image marker
-        outputImage.compressedImageData.pushIntoAlignment();
-        outputImage.compressedImageData.pushWord(markerEndOfImageSegmentEOI);
+        outputImage.m_compressedImageData.pushIntoAlignment();
+        outputImage.m_compressedImageData.pushWord(markerEndOfImageSegmentEOI);
 
-        outputImage.width = inputImage.width;// to remove
-        outputImage.height = inputImage.height; // to remove
-        outputImage.fileSize = outputImage.compressedImageData.getSize();
-        outputImage.supportsSaving = supportsSaving();
+        outputImage.m_width = inputImage.m_width;// to remove
+        outputImage.m_height = inputImage.height; // to remove
+        outputImage.m_fileSize = outputImage.m_compressedImageData.getSize();
+        outputImage.m_supportsSaving = supportsSaving();
     }
     catch(std::exception const& e){
         std::cout << "[Error]: " << e.what() << "\n";
@@ -43,16 +43,16 @@ void jpeg::EncoderDecoder::encode(BitmapImageRGB const& inputImage, JPEGImage& o
 
 void jpeg::EncoderDecoder::decode(JPEGImage inputImage, BitmapImageRGB& outputImage){
     try{
-        OutputBlockGrid outputBlockGrid(inputImage.width, inputImage.height);
+        OutputBlockGrid outputBlockGrid(inputImage.m_width, inputImage.m_height);
         BitStreamReadProgress readProgress{};
-        decodeHeader(inputImage.compressedImageData, readProgress, outputImage);
-        inputImage.compressedImageData.removeStuffedBytes(readProgress);
+        decodeHeader(inputImage.m_compressedImageData, readProgress, outputImage);
+        inputImage.m_compressedImageData.removeStuffedBytes(readProgress);
         // Decode image block-by-block
         std::array<int16_t, 3> lastDCValues = {0,0,0};
         while (!outputBlockGrid.atEnd()){
             ColourMappedBlockData thisBlock;
             for (size_t channel = 0 ; channel < 3 ; ++channel){
-                QuantisedBlockChannelData quantisedData = m_entropyEncoder->decode(inputImage.compressedImageData, readProgress, lastDCValues[channel], m_colourMapper->isLuminanceComponent(channel));
+                QuantisedBlockChannelData quantisedData = m_entropyEncoder->decode(inputImage.m_compressedImageData, readProgress, lastDCValues[channel], m_colourMapper->isLuminanceComponent(channel));
                 DctBlockChannelData dctData = m_quantiser->dequantise(quantisedData, m_colourMapper->isLuminanceComponent(channel));
                 ColourMappedBlockData::BlockChannelData colourMappedChannelData = m_discreteCosineTransformer->inverseTransform(dctData);
                 thisBlock.m_data[channel] = colourMappedChannelData;
@@ -60,7 +60,7 @@ void jpeg::EncoderDecoder::decode(JPEGImage inputImage, BitmapImageRGB& outputIm
         outputBlockGrid.processNextBlock(m_colourMapper->unmap(thisBlock));
         }
         // Check end of image marker
-        if (inputImage.compressedImageData.readNextAlignedWord(readProgress) != markerEndOfImageSegmentEOI){
+        if (inputImage.m_compressedImageData.readNextAlignedWord(readProgress) != markerEndOfImageSegmentEOI){
             throw std::runtime_error("Failed to find EOI marker");
         }
         outputImage = outputBlockGrid.getBitmapRGB();
@@ -100,7 +100,7 @@ void jpeg::EncoderDecoder::encodeHeader(BitmapImageRGB const& inputImage, BitStr
     outputStream.pushWord(17); // length
     outputStream.pushByte(0x08); // precision
     outputStream.pushWord(inputImage.height);
-    outputStream.pushWord(inputImage.width);
+    outputStream.pushWord(inputImage.m_width);
     outputStream.pushByte(3); // Number of components
     // First component
     outputStream.pushByte(1); // ID
@@ -197,7 +197,7 @@ void jpeg::EncoderDecoder::decodeHeader(BitStream const& inputStream, BitStreamR
             throw std::runtime_error("Failed to find precision in SOF0 payload");
         }
         outputImage.height = inputStream.readNextAlignedWord(readProgress);
-        outputImage.width = inputStream.readNextAlignedWord(readProgress);
+        outputImage.m_width = inputStream.readNextAlignedWord(readProgress);
         if (inputStream.readNextAlignedByte(readProgress) != 3){
             throw std::runtime_error("Failed to find number of components in SOF0 payload");
         }

@@ -20,9 +20,9 @@ namespace jpeg{
         struct PixelData{
             uint8_t r, g, b;   
         };
-        uint16_t width, height;
-        std::uintmax_t fileSize;
-        std::vector<PixelData> data;
+        uint16_t m_width, height;
+        std::uintmax_t m_fileSize;
+        std::vector<PixelData> m_imageData;
     private:
         bool init(SDL_Surface* image);
     };

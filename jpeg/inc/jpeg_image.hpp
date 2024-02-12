@@ -9,19 +9,17 @@
 
 #include "bitstream.hpp"
 
-// temp
-#include "entropy_encoder.hpp"
 namespace jpeg{
     /* Stores a JPEG image */
     struct JPEGImage{
-        uint16_t width, height;
-        std::uintmax_t fileSize;
-        BitStream compressedImageData;
-        bool supportsSaving = false;
+        uint16_t m_width, m_height;
+        std::uintmax_t m_fileSize;
+        BitStream m_compressedImageData;
+        bool m_supportsSaving = false;
         void saveToFile(std::string const& path){
-            if (supportsSaving){
+            if (m_supportsSaving){
                 std::ofstream file(path.c_str(), std::ios::out | std::ios::binary | std::ios::app);
-                file.write(reinterpret_cast<char const*>(compressedImageData.getDataPtr()), compressedImageData.getSize());
+                file.write(reinterpret_cast<char const*>(m_compressedImageData.getDataPtr()), m_compressedImageData.getSize());
                 file.close();
             }
             else{

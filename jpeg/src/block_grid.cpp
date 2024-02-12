@@ -94,11 +94,11 @@ jpeg::InputBlockGrid::BlockIterator::underlying_pointer jpeg::InputBlockGrid::Bl
 }
 
 jpeg::InputBlockGrid::BlockIterator jpeg::InputBlockGrid::begin() const{
-    return BlockIterator(imageData.data.data(), imageData.width, imageData.height);
+    return BlockIterator(imageData.m_imageData.data(), imageData.m_width, imageData.height);
 }
 
 jpeg::InputBlockGrid::BlockIterator jpeg::InputBlockGrid::end() const{
-    return BlockIterator(imageData.data.data() + imageData.width * imageData.height, imageData.width, imageData.height);
+    return BlockIterator(imageData.m_imageData.data() + imageData.m_width * imageData.height, imageData.m_width, imageData.height);
 }
 
 jpeg::OutputBlockGrid::OutputBlockGrid(uint16_t width, uint16_t height) : 
@@ -130,5 +130,5 @@ bool jpeg::OutputBlockGrid::atEnd() const{
 }
 
 jpeg::BitmapImageRGB::PixelData* jpeg::OutputBlockGrid::getBlockPtr(){
-    return output.data.data() + (currentBlock.getDataPtr() - blockGrid.begin().getDataPtr());
+    return output.m_imageData.data() + (currentBlock.getDataPtr() - blockGrid.begin().getDataPtr());
 }

@@ -81,20 +81,20 @@ int main(int argc, char *argv[]){
     
     jpeg::BitmapImageRGB inputBmp(inputBmpImagePath);
     
-    if (inputBmp.width == 0 || inputBmp.height == 0){
+    if (inputBmp.m_width == 0 || inputBmp.height == 0){
         return EXIT_FAILURE;
     }
 
-    Window window(2 * inputBmp.width * scale, inputBmp.height * scale, "BMP-to-JPEG");
+    Window window(2 * inputBmp.m_width * scale, inputBmp.height * scale, "BMP-to-JPEG");
     SDL_Init(SDL_INIT_VIDEO);
     SDL_Renderer* renderer = SDL_CreateRenderer(window.getWindow(), -1, 0);
     if (!window.getWindow() || !renderer) return EXIT_FAILURE;
     
     // Display pre-encoding image in left half of window
-    SDL_Texture* inputBmpTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB24, SDL_TEXTUREACCESS_STATIC, inputBmp.width, inputBmp.height);
-    SDL_UpdateTexture(inputBmpTexture, nullptr, inputBmp.data.data(), inputBmp.width * 3);
+    SDL_Texture* inputBmpTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB24, SDL_TEXTUREACCESS_STATIC, inputBmp.m_width, inputBmp.height);
+    SDL_UpdateTexture(inputBmpTexture, nullptr, inputBmp.m_imageData.data(), inputBmp.m_width * 3);
     SDL_RenderClear(renderer);
-    SDL_Rect leftHalf = {.x = 0, .y = 0,  .w = inputBmp.width * scale, .h = inputBmp.height * scale};
+    SDL_Rect leftHalf = {.x = 0, .y = 0,  .w = inputBmp.m_width * scale, .h = inputBmp.height * scale};
     SDL_RenderCopy(renderer, inputBmpTexture, nullptr, &leftHalf);
     SDL_RenderPresent(renderer);
 
@@ -107,7 +107,7 @@ int main(int argc, char *argv[]){
 
     auto timeToEncode = 1e-3 * std::chrono::duration_cast<std::chrono::microseconds>(tEnd - tStart).count();
     std::string updatedTitle = std::string("BMP-to-JPEG (") 
-        + std::to_string(inputBmp.width) + std::string("x")
+        + std::to_string(inputBmp.m_width) + std::string("x")
         + std::to_string(inputBmp.height) + std::string(", encode: ")
         + std::to_string(timeToEncode) + std::string(" ms)");
     SDL_SetWindowTitle(window.getWindow(), updatedTitle.c_str());
@@ -120,21 +120,21 @@ int main(int argc, char *argv[]){
 
     auto timeToDecode = 1e-3 * std::chrono::duration_cast<std::chrono::microseconds>(tEnd - tStart).count();
     updatedTitle = std::string("BMP-to-JPEG (") 
-        + std::to_string(inputBmp.width) + std::string("x")
+        + std::to_string(inputBmp.m_width) + std::string("x")
         + std::to_string(inputBmp.height) + std::string(", encode: ")
         + std::to_string(timeToEncode) + std::string(" ms, decode: ")
         + std::to_string(timeToDecode) + std::string(" ms)");
     SDL_SetWindowTitle(window.getWindow(), updatedTitle.c_str());
     
     // Display post-encoding image in right half of window
-    SDL_Texture* outputBmpTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB24, SDL_TEXTUREACCESS_STATIC, outputBmp.width, outputBmp.height);
-    SDL_UpdateTexture(outputBmpTexture, nullptr, outputBmp.data.data(), outputBmp.width * 3);
-    SDL_Rect rightHalf = {.x = inputBmp.width * scale, .y = 0,  .w = outputBmp.width * scale, .h = outputBmp.height * scale};
+    SDL_Texture* outputBmpTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB24, SDL_TEXTUREACCESS_STATIC, outputBmp.m_width, outputBmp.height);
+    SDL_UpdateTexture(outputBmpTexture, nullptr, outputBmp.m_imageData.data(), outputBmp.m_width * 3);
+    SDL_Rect rightHalf = {.x = inputBmp.m_width * scale, .y = 0,  .w = outputBmp.m_width * scale, .h = outputBmp.height * scale};
     SDL_RenderCopy(renderer, outputBmpTexture, nullptr, &rightHalf);
     SDL_RenderPresent(renderer);
 
-    std::cout << "BMP size: " << inputBmp.fileSize << "B | JPEG size: " << outputJpeg.fileSize 
-              << "B | Compression ratio: " << (outputJpeg.fileSize == 0 ? std::string("N/A") : std::to_string(double(inputBmp.fileSize)/double(outputJpeg.fileSize))) 
+    std::cout << "BMP size: " << inputBmp.m_fileSize << "B | JPEG size: " << outputJpeg.m_fileSize 
+              << "B | Compression ratio: " << (outputJpeg.m_fileSize == 0 ? std::string("N/A") : std::to_string(double(inputBmp.m_fileSize)/double(outputJpeg.m_fileSize))) 
               << " | Encode time: " << std::to_string(timeToEncode) + std::string(" ms | Decode time: ") << std::to_string(timeToDecode)
               << " ms\n";
 
