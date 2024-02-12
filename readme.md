@@ -53,7 +53,7 @@ class MyNewEncoder final : public Encoder{
 ## Dependencies
 Bitmap loading is handled by SDL's loadImage function, as I was already using SDL for window creation. Writing my own bitmap parser would be a relatively simple task, but I may be better off using one of the many header-only bitmap loaders.
 
-Otherwise, the JPEG encoder-decoder classes in this repository only depend on the C++20 STL.
+Otherwise, the classes in this library only depend on the C++20 STL.
 
 ## Compilation of Example Programs
 Both examples compile on my computer with no warnings. Some sample g++ commands are below, though obviously these may differ based on your environment.
