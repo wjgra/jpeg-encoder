@@ -22,7 +22,7 @@ void jpeg::EncoderDecoder::encode(BitmapImageRGB const& inputImage, JPEGImage& o
             ColourMappedBlockData colourMappedBlock = m_colourMapper->map(block);
             for (size_t channel = 0 ; channel < 3 ; ++channel){
                 DctBlockChannelData dctData = m_discreteCosineTransformer->transform(colourMappedBlock.m_data[channel]);
-                QuantisedChannelOutput quantisedData = m_quantiser->quantise(dctData, m_colourMapper->isLuminanceComponent(channel));
+                QuantisedBlockChannelData quantisedData = m_quantiser->quantise(dctData, m_colourMapper->isLuminanceComponent(channel));
                 m_entropyEncoder->encode(quantisedData, lastDCValues[channel], outputImage.compressedImageData, m_colourMapper->isLuminanceComponent(channel));
             }
         }
@@ -52,7 +52,7 @@ void jpeg::EncoderDecoder::decode(JPEGImage inputImage, BitmapImageRGB& outputIm
         while (!outputBlockGrid.atEnd()){
             ColourMappedBlockData thisBlock;
             for (size_t channel = 0 ; channel < 3 ; ++channel){
-                QuantisedChannelOutput quantisedData = m_entropyEncoder->decode(inputImage.compressedImageData, readProgress, lastDCValues[channel], m_colourMapper->isLuminanceComponent(channel));
+                QuantisedBlockChannelData quantisedData = m_entropyEncoder->decode(inputImage.compressedImageData, readProgress, lastDCValues[channel], m_colourMapper->isLuminanceComponent(channel));
                 DctBlockChannelData dctData = m_quantiser->dequantise(quantisedData, m_colourMapper->isLuminanceComponent(channel));
                 ColourMappedBlockData::BlockChannelData colourMappedChannelData = m_discreteCosineTransformer->inverseTransform(dctData);
                 thisBlock.m_data[channel] = colourMappedChannelData;

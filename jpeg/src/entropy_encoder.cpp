@@ -1,24 +1,24 @@
 #include "entropy_encoder.hpp"
 
-void jpeg::EntropyEncoder::encode(QuantisedChannelOutput const& input, int16_t& lastDCValue, BitStream& outputStream, bool isLuminanceComponent) const{
-    QuantisedChannelOutput zigZagMappedChannelData = mapFromGridToZigZag(input);
-    RunLengthEncodedChannelOutput runLengthEncodedChannelData = applyRunLengthEncoding(zigZagMappedChannelData, lastDCValue);
+void jpeg::EntropyEncoder::encode(QuantisedBlockChannelData const& input, int16_t& lastDCValue, BitStream& outputStream, bool isLuminanceComponent) const{
+    QuantisedBlockChannelData zigZagMappedChannelData = mapFromGridToZigZag(input);
+    RunLengthEncodedBlockChannelData runLengthEncodedChannelData = applyRunLengthEncoding(zigZagMappedChannelData, lastDCValue);
     applyFinalEncoding(runLengthEncodedChannelData, outputStream, isLuminanceComponent);
 }
 
-jpeg::QuantisedChannelOutput jpeg::EntropyEncoder::decode(BitStream const& inputStream, BitStreamReadProgress& readProgress, int16_t& lastDCValue, bool isLuminanceComponent) const{
-    RunLengthEncodedChannelOutput runLengthEncodedChannelData = removeFinalEncoding(inputStream, readProgress, isLuminanceComponent);
-    QuantisedChannelOutput zigZagMappedChannelData = removeRunLengthEncoding(runLengthEncodedChannelData, lastDCValue);
+jpeg::QuantisedBlockChannelData jpeg::EntropyEncoder::decode(BitStream const& inputStream, BitStreamReadProgress& readProgress, int16_t& lastDCValue, bool isLuminanceComponent) const{
+    RunLengthEncodedBlockChannelData runLengthEncodedChannelData = removeFinalEncoding(inputStream, readProgress, isLuminanceComponent);
+    QuantisedBlockChannelData zigZagMappedChannelData = removeRunLengthEncoding(runLengthEncodedChannelData, lastDCValue);
     return mapFromZigZagToGrid(zigZagMappedChannelData);
 }
 
-jpeg::QuantisedChannelOutput jpeg::EntropyEncoder::mapFromGridToZigZag(QuantisedChannelOutput const& input) const{
+jpeg::QuantisedBlockChannelData jpeg::EntropyEncoder::mapFromGridToZigZag(QuantisedBlockChannelData const& input) const{
     // Issue: since block size is known at compile-time, would be faster to compute indices once then re-use them.
     // A similar approach can then be used for inversion.
-    QuantisedChannelOutput output;
+    QuantisedBlockChannelData output;
     // Add first element of block
     size_t xPos = 0, yPos = 0;
-    output.data[0] = input.data[0];
+    output.m_data[0] = input.m_data[0];
     // For remaining entries, add each zig-zag one at a time, starting by heading South West from data[1]
     /* 
     Example indices for 4x4 block:
@@ -29,7 +29,7 @@ jpeg::QuantisedChannelOutput jpeg::EntropyEncoder::mapFromGridToZigZag(Quantised
      */
     size_t currentInsertionIndex = 1;
     auto insertXYDataAtIndex = [&]{
-        output.data[currentInsertionIndex] = input.data[xPos + yPos * BlockGrid::blockSize];
+        output.m_data[currentInsertionIndex] = input.m_data[xPos + yPos * BlockGrid::blockSize];
         ++currentInsertionIndex;
     };
     bool headingSouthWest = true; // Otherwise, head North East
@@ -72,81 +72,81 @@ jpeg::QuantisedChannelOutput jpeg::EntropyEncoder::mapFromGridToZigZag(Quantised
         }
     }
     // Add last entry
-    output.data[currentInsertionIndex] = input.data[currentInsertionIndex];
+    output.m_data[currentInsertionIndex] = input.m_data[currentInsertionIndex];
     return output;
 }
 
-jpeg::QuantisedChannelOutput jpeg::EntropyEncoder::mapFromZigZagToGrid(QuantisedChannelOutput const& input) const{
+jpeg::QuantisedBlockChannelData jpeg::EntropyEncoder::mapFromZigZagToGrid(QuantisedBlockChannelData const& input) const{
     // There are presumably more elegant ways of inverting the mapping...
-    QuantisedChannelOutput indices;
+    QuantisedBlockChannelData indices;
     for (size_t i = 0 ; i < BlockGrid::blockElements ; ++i){
-        indices.data[i] = i;
+        indices.m_data[i] = i;
     }
     indices = mapFromGridToZigZag(indices);
-    QuantisedChannelOutput output;
+    QuantisedBlockChannelData output;
     size_t currentIndex = 0;
-    for (auto i : indices.data){
-        output.data[i] = input.data[currentIndex++];
+    for (auto i : indices.m_data){
+        output.m_data[i] = input.m_data[currentIndex++];
     }
     return output;
 }
 
-jpeg::RunLengthEncodedChannelOutput jpeg::EntropyEncoder::applyRunLengthEncoding(QuantisedChannelOutput const& input, int16_t& lastDCValue) const{
-    RunLengthEncodedChannelOutput output;
+jpeg::RunLengthEncodedBlockChannelData jpeg::EntropyEncoder::applyRunLengthEncoding(QuantisedBlockChannelData const& input, int16_t& lastDCValue) const{
+    RunLengthEncodedBlockChannelData output;
     // DC difference
-    output.dcDifference = input.data[0] - lastDCValue;
-    lastDCValue = input.data[0];
+    output.m_dcDifference = input.m_data[0] - lastDCValue;
+    lastDCValue = input.m_data[0];
 
     // RLE for AC coefficient leading zeroes
     uint8_t zeroCount = 0;
-    for (auto const& coeff : input.data | std::views::drop(1)){
+    for (auto const& coeff : input.m_data | std::views::drop(1)){
         if (zeroCount == 15 || coeff != 0){
-            output.acCoefficients.emplace_back(zeroCount, coeff);
+            output.m_acCoefficients.emplace_back(zeroCount, coeff);
             zeroCount = 0;
         }
         else{
             ++zeroCount;
         }
     }
-    if (input.data.back() == 0){
+    if (input.m_data.back() == 0){
         // Delete any trailing zeroes
-        while (!output.acCoefficients.empty() &&  output.acCoefficients.back().value == 0){
-            output.acCoefficients.pop_back();
+        while (!output.m_acCoefficients.empty() &&  output.m_acCoefficients.back().m_value == 0){
+            output.m_acCoefficients.pop_back();
         }
         // Append EoB
-        output.acCoefficients.emplace_back(0, 0);
+        output.m_acCoefficients.emplace_back(0, 0);
     }
     return output;
 }
 
-jpeg::QuantisedChannelOutput jpeg::EntropyEncoder::removeRunLengthEncoding(RunLengthEncodedChannelOutput const& input, int16_t& lastDCValue) const{
-    QuantisedChannelOutput output;
+jpeg::QuantisedBlockChannelData jpeg::EntropyEncoder::removeRunLengthEncoding(RunLengthEncodedBlockChannelData const& input, int16_t& lastDCValue) const{
+    QuantisedBlockChannelData output;
     // Restore DC coefficients
-    output.data[0] = input.dcDifference + lastDCValue;
-    lastDCValue = output.data[0];
+    output.m_data[0] = input.m_dcDifference + lastDCValue;
+    lastDCValue = output.m_data[0];
     // Restore AC coefficients
     size_t blockIndex = 1; 
-    for (auto const& acRLEData : std::span(input.acCoefficients.begin(), input.acCoefficients.end() - 1 )){
+    for (auto const& acRLEData : std::span(input.m_acCoefficients.begin(), input.m_acCoefficients.end() - 1 )){
         // Restore leading zeroes
-        for (size_t i = 0 ; i < acRLEData.runLength ; ++i){
+        for (size_t i = 0 ; i < acRLEData.m_runLength ; ++i){
             assert(blockIndex < BlockGrid::blockElements);
-            output.data[blockIndex++] = 0;
+            output.m_data[blockIndex++] = 0;
         }
         // Restore value
         assert(blockIndex < BlockGrid::blockElements);
-        output.data[blockIndex++] = acRLEData.value;
+        output.m_data[blockIndex++] = acRLEData.m_value;
     }
     // Zero remaining elements
     for (size_t i = blockIndex ; i < BlockGrid::blockElements ; ++i){
-        output.data[i] = 0;
+        output.m_data[i] = 0;
     }
     return output;
 }
 
 jpeg::HuffmanEncoder::HuffmanEncoder()
     // 'Default' Huffman tables for luminance components from Annex K of ITU-T81
-    : luminanceHuffTable{
-        .dcTable{{
+    : m_luminanceHuffTable{
+        .m_dcTable{{
                 {2, 0b00},
                 {3, 0b010},
                 {3, 0b011},
@@ -161,9 +161,9 @@ jpeg::HuffmanEncoder::HuffmanEncoder()
                 {9, 0b111111110}
                 }},
 
-        .dcLookup{},
+        .m_dcLookup{},
 
-        .acTable{{
+        .m_acTable{{
             // First index = runlength (RRRR)
             // Second index = size (SSSS) - 1
             // Run = 0
@@ -375,12 +375,12 @@ jpeg::HuffmanEncoder::HuffmanEncoder()
                 {16, 0b1111111111111110}
             }}
         }},
-        .acEndOfBlock{4, 0b1010},
-        .acZeroRunLength{11, 0b11111111001},
-        .acLookup{}
+        .m_acEndOfBlock{4, 0b1010},
+        .m_acZeroRunLength{11, 0b11111111001},
+        .m_acLookup{}
     },
-    chrominanceHuffTable{
-        .dcTable{{
+    m_chrominanceHuffTable{
+        .m_dcTable{{
             {2, 0b000},
             {2, 0b01},
             {2, 0b10},
@@ -394,8 +394,8 @@ jpeg::HuffmanEncoder::HuffmanEncoder()
             {10, 0b1111111110},
             {11, 0b11111111110}
         }},
-        .dcLookup{},
-        .acTable{{
+        .m_dcLookup{},
+        .m_acTable{{
             // First index = runlength (RRRR)
             // Second index = size (SSSS) - 1
             // Run = 0
@@ -607,35 +607,35 @@ jpeg::HuffmanEncoder::HuffmanEncoder()
                 {16, 0b1111111111111110}
             }}
         }},
-        .acEndOfBlock{2, 0b00},
-        .acZeroRunLength{10, 0b1111111010},
-        .acLookup{}
+        .m_acEndOfBlock{2, 0b00},
+        .m_acZeroRunLength{10, 0b1111111010},
+        .m_acLookup{}
     }
-    // Issue: to include chrominance tables
-    // Issue 2: implement frequency analysis to generate tailored Huffman tables
+    // Issue: implement frequency analysis to generate tailored Huffman tables - requires two passes in encoder
 {
     // Populate luminance Huffman lookup tables
-    for (size_t i = 0 ; i < luminanceHuffTable.dcTable.size(); ++i){
-        luminanceHuffTable.dcLookup[luminanceHuffTable.dcTable[i].codeWord] = i;
+    for (size_t i = 0 ; i < m_luminanceHuffTable.m_dcTable.size(); ++i){
+        m_luminanceHuffTable.m_dcLookup[m_luminanceHuffTable.m_dcTable[i].m_codeWord] = i;
     }
-    for (size_t r = 0 ; r < luminanceHuffTable.acTable.size() ; ++r){
-        for (size_t s = 0 ; s < luminanceHuffTable.acTable[0].size() ; ++s){
-            luminanceHuffTable.acLookup[luminanceHuffTable.acTable[r][s].codeWord] = {.RRRR = r, .SSSS = s + 1};
+    for (size_t r = 0 ; r < m_luminanceHuffTable.m_acTable.size() ; ++r){
+        for (size_t s = 0 ; s < m_luminanceHuffTable.m_acTable[0].size() ; ++s){
+            m_luminanceHuffTable.m_acLookup[m_luminanceHuffTable.m_acTable[r][s].m_codeWord] = {.m_RRRR = r, .m_SSSS = s + 1};
         }
     }
     // Populate chrominance Huffman lookup tables
-    for (size_t i = 0 ; i < chrominanceHuffTable.dcTable.size(); ++i){
-        chrominanceHuffTable.dcLookup[chrominanceHuffTable.dcTable[i].codeWord] = i;
+    for (size_t i = 0 ; i < m_chrominanceHuffTable.m_dcTable.size(); ++i){
+        m_chrominanceHuffTable.m_dcLookup[m_chrominanceHuffTable.m_dcTable[i].m_codeWord] = i;
     }
-    for (size_t r = 0 ; r < chrominanceHuffTable.acTable.size() ; ++r){
-        for (size_t s = 0 ; s < chrominanceHuffTable.acTable[0].size() ; ++s){
-            chrominanceHuffTable.acLookup[chrominanceHuffTable.acTable[r][s].codeWord] = {.RRRR = r, .SSSS = s + 1};
+    for (size_t r = 0 ; r < m_chrominanceHuffTable.m_acTable.size() ; ++r){
+        for (size_t s = 0 ; s < m_chrominanceHuffTable.m_acTable[0].size() ; ++s){
+            m_chrominanceHuffTable.m_acLookup[m_chrominanceHuffTable.m_acTable[r][s].m_codeWord] = {.m_RRRR = r, .m_SSSS = s + 1};
         }
     }
 }
 
 void jpeg::HuffmanEncoder::encodeHeaderEntropyTables(BitStream& outputStream) const{
     /* Issue: these are hardcoded based on the default tables, though could be determined according to the process described wrt table B.5 of ITU-T81 */
+    /* This needs to be sorted before custom Huffman Codes can be implemented */
     std::vector<uint8_t> luminanceDcCodeLengths{{0x00, 0x01, 0x05, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}};
     std::vector<uint8_t> luminanceDcValues{{0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B}};
 
@@ -693,21 +693,21 @@ void jpeg::HuffmanEncoder::encodeHeaderEntropyTables(BitStream& outputStream) co
     std::ranges::for_each(chrominanceAcValues, [&outputStream](uint8_t const& val){outputStream.pushByte(val);});
 }
 
-void jpeg::HuffmanEncoder::applyFinalEncoding(RunLengthEncodedChannelOutput const& input, BitStream& outputStream, bool isLuminanceComponent) const{
-    pushHuffmanCodedDCDifferenceToStream(input.dcDifference, outputStream, isLuminanceComponent ? luminanceHuffTable : chrominanceHuffTable);
-    for (auto const& acCoeff : input.acCoefficients){
-        pushHuffmanCodedACCoefficientToStream(acCoeff, outputStream, isLuminanceComponent ? luminanceHuffTable : chrominanceHuffTable);
+void jpeg::HuffmanEncoder::applyFinalEncoding(RunLengthEncodedBlockChannelData const& input, BitStream& outputStream, bool isLuminanceComponent) const{
+    pushHuffmanCodedDCDifferenceToStream(input.m_dcDifference, outputStream, isLuminanceComponent ? m_luminanceHuffTable : m_chrominanceHuffTable);
+    for (auto const& acCoeff : input.m_acCoefficients){
+        pushHuffmanCodedACCoefficientToStream(acCoeff, outputStream, isLuminanceComponent ? m_luminanceHuffTable : m_chrominanceHuffTable);
     }
 }
 
-jpeg::RunLengthEncodedChannelOutput jpeg::HuffmanEncoder::removeFinalEncoding(BitStream const& inputStream, BitStreamReadProgress& readProgress, bool isLuminanceComponent) const{
-    RunLengthEncodedChannelOutput out;
-    out.dcDifference = extractDCDifferenceFromStream(inputStream, readProgress, isLuminanceComponent ? luminanceHuffTable : chrominanceHuffTable);
+jpeg::RunLengthEncodedBlockChannelData jpeg::HuffmanEncoder::removeFinalEncoding(BitStream const& inputStream, BitStreamReadProgress& readProgress, bool isLuminanceComponent) const{
+    RunLengthEncodedBlockChannelData out;
+    out.m_dcDifference = extractDCDifferenceFromStream(inputStream, readProgress, isLuminanceComponent ? m_luminanceHuffTable : m_chrominanceHuffTable);
     size_t processedAcCoefficients = 0;
     do{
-        out.acCoefficients.emplace_back(extractACCoefficientFromStream(inputStream, readProgress, isLuminanceComponent ? luminanceHuffTable : chrominanceHuffTable));
-        processedAcCoefficients += 1 + out.acCoefficients.back().runLength;
-    } while ((processedAcCoefficients != 63) && (out.acCoefficients.back() != RunLengthEncodedChannelOutput::RunLengthEncodedACCoefficient{.runLength = 0, .value = 0}));
+        out.m_acCoefficients.emplace_back(extractACCoefficientFromStream(inputStream, readProgress, isLuminanceComponent ? m_luminanceHuffTable : m_chrominanceHuffTable));
+        processedAcCoefficients += 1 + out.m_acCoefficients.back().m_runLength;
+    } while ((processedAcCoefficients != 63) && (out.m_acCoefficients.back() != RunLengthEncodedBlockChannelData::RunLengthEncodedACCoefficient{.m_runLength = 0, .m_value = 0}));
     return out;
 }
 
@@ -717,7 +717,7 @@ void jpeg::HuffmanEncoder::pushHuffmanCodedDCDifferenceToStream(int16_t dcDiffer
     uint16_t const dcDiffAmplitude = dcDiffPositive ? dcDifference : -dcDifference;
     uint8_t const categorySSSS = std::bit_width(dcDiffAmplitude);
     // Push Huffman code for category SSSS
-    outputStream.pushBitsu16(huffTable.dcTable[categorySSSS].codeWord, huffTable.dcTable[categorySSSS].codeLength);
+    outputStream.pushBitsu16(huffTable.m_dcTable[categorySSSS].m_codeWord, huffTable.m_dcTable[categorySSSS].m_codeLength);
     // Push DC diff amplitude
     if (categorySSSS > 0){
         if (dcDiffPositive){
@@ -729,29 +729,29 @@ void jpeg::HuffmanEncoder::pushHuffmanCodedDCDifferenceToStream(int16_t dcDiffer
     }
 }
 
-void jpeg::HuffmanEncoder::pushHuffmanCodedACCoefficientToStream(RunLengthEncodedChannelOutput::RunLengthEncodedACCoefficient acCoeff, BitStream& outputStream, HuffmanTable const& huffTable) const{
-        uint8_t runLengthRRRR = acCoeff.runLength;
-        bool const acCoeffPositive = acCoeff.value > 0;
-        uint16_t const acCoeffAmplitude = acCoeffPositive ? acCoeff.value : -acCoeff.value;
+void jpeg::HuffmanEncoder::pushHuffmanCodedACCoefficientToStream(RunLengthEncodedBlockChannelData::RunLengthEncodedACCoefficient acCoeff, BitStream& outputStream, HuffmanTable const& huffTable) const{
+        uint8_t runLengthRRRR = acCoeff.m_runLength;
+        bool const acCoeffPositive = acCoeff.m_value > 0;
+        uint16_t const acCoeffAmplitude = acCoeffPositive ? acCoeff.m_value : -acCoeff.m_value;
         uint8_t const categorySSSS = std::bit_width(acCoeffAmplitude);
         // Push huff code for RRRRSSSS
         HuffmanTable::HuffmanCode huffPair;
         if (categorySSSS == 0){
             switch(runLengthRRRR){
                 case 0:
-                    huffPair = huffTable.acEndOfBlock;
+                    huffPair = huffTable.m_acEndOfBlock;
                     break;
                 case 0xF:
-                    huffPair = huffTable.acZeroRunLength;
+                    huffPair = huffTable.m_acZeroRunLength;
                     break;
                 default:
                     throw std::runtime_error("Invalid runtime encoding encountered.");
             }
         }
         else{
-            huffPair = huffTable.acTable[runLengthRRRR][categorySSSS - 1];
+            huffPair = huffTable.m_acTable[runLengthRRRR][categorySSSS - 1];
         }
-        outputStream.pushBitsu16(huffPair.codeWord, huffPair.codeLength);
+        outputStream.pushBitsu16(huffPair.m_codeWord, huffPair.m_codeLength);
 
         // Push AC value (same as for DC diff)
         if (categorySSSS > 0){
@@ -769,7 +769,7 @@ int16_t jpeg::HuffmanEncoder::extractDCDifferenceFromStream(BitStream const& inp
     uint16_t candidateHuffCode = inputStream.readNextBit(readProgress);
     candidateHuffCode = appendBit(candidateHuffCode, inputStream.readNextBit(readProgress));
     size_t candidateBitLength = 2;
-    while(!(huffTable.dcLookup.contains(candidateHuffCode) && (candidateBitLength == huffTable.dcTable[huffTable.dcLookup.at(candidateHuffCode)].codeLength))){
+    while(!(huffTable.m_dcLookup.contains(candidateHuffCode) && (candidateBitLength == huffTable.m_dcTable[huffTable.m_dcLookup.at(candidateHuffCode)].m_codeLength))){
         candidateHuffCode = appendBit(candidateHuffCode, inputStream.readNextBit(readProgress));
         ++candidateBitLength;
         if (candidateBitLength > 16){
@@ -778,7 +778,7 @@ int16_t jpeg::HuffmanEncoder::extractDCDifferenceFromStream(BitStream const& inp
     }
 
     // Read DC diff and save to output
-    auto categorySSSS = huffTable.dcLookup.at(candidateHuffCode);
+    auto categorySSSS = huffTable.m_dcLookup.at(candidateHuffCode);
     if (categorySSSS == 0){
         return 0;
     }
@@ -807,35 +807,35 @@ int16_t jpeg::HuffmanEncoder::extractDCDifferenceFromStream(BitStream const& inp
     }
 }
 
-jpeg::RunLengthEncodedChannelOutput::RunLengthEncodedACCoefficient jpeg::HuffmanEncoder::extractACCoefficientFromStream(BitStream const& inputStream, BitStreamReadProgress& readProgress, HuffmanTable const& huffTable) const{
+jpeg::RunLengthEncodedBlockChannelData::RunLengthEncodedACCoefficient jpeg::HuffmanEncoder::extractACCoefficientFromStream(BitStream const& inputStream, BitStreamReadProgress& readProgress, HuffmanTable const& huffTable) const{
     // March forwards from current bit until Huffman code encountered, starting with first two bits
-    HuffmanTable::HuffmanCode candidateHuffCode{.codeLength = 2, .codeWord = 0};
-    candidateHuffCode.codeWord = appendBit(candidateHuffCode.codeWord, inputStream.readNextBit(readProgress));
-    candidateHuffCode.codeWord = appendBit(candidateHuffCode.codeWord, inputStream.readNextBit(readProgress));
+    HuffmanTable::HuffmanCode candidateHuffCode{.m_codeLength = 2, .m_codeWord = 0};
+    candidateHuffCode.m_codeWord = appendBit(candidateHuffCode.m_codeWord, inputStream.readNextBit(readProgress));
+    candidateHuffCode.m_codeWord = appendBit(candidateHuffCode.m_codeWord, inputStream.readNextBit(readProgress));
     
-    while(candidateHuffCode != huffTable.acEndOfBlock && candidateHuffCode != huffTable.acZeroRunLength){
-        if (huffTable.acLookup.contains(candidateHuffCode.codeWord)){
-            auto tempHuffIndex = huffTable.acLookup.at(candidateHuffCode.codeWord);
-            if (candidateHuffCode.codeLength == huffTable.acTable[tempHuffIndex.RRRR][tempHuffIndex.SSSS - 1].codeLength){
+    while(candidateHuffCode != huffTable.m_acEndOfBlock && candidateHuffCode != huffTable.m_acZeroRunLength){
+        if (huffTable.m_acLookup.contains(candidateHuffCode.m_codeWord)){
+            auto tempHuffIndex = huffTable.m_acLookup.at(candidateHuffCode.m_codeWord);
+            if (candidateHuffCode.m_codeLength == huffTable.m_acTable[tempHuffIndex.m_RRRR][tempHuffIndex.m_SSSS - 1].m_codeLength){
                 break;
             }
         }
-        candidateHuffCode.codeWord = appendBit(candidateHuffCode.codeWord, inputStream.readNextBit(readProgress));
-        ++candidateHuffCode.codeLength;
-        if (candidateHuffCode.codeLength > 16){
+        candidateHuffCode.m_codeWord = appendBit(candidateHuffCode.m_codeWord, inputStream.readNextBit(readProgress));
+        ++candidateHuffCode.m_codeLength;
+        if (candidateHuffCode.m_codeLength > 16){
             throw std::runtime_error("Invalid Huffman code encountered in input JPEG data.");
         }
     }
-    if (candidateHuffCode.codeWord == huffTable.acEndOfBlock.codeWord){
-        return RunLengthEncodedChannelOutput::RunLengthEncodedACCoefficient{.runLength = 0, .value = 0};
+    if (candidateHuffCode.m_codeWord == huffTable.m_acEndOfBlock.m_codeWord){
+        return RunLengthEncodedBlockChannelData::RunLengthEncodedACCoefficient{.m_runLength = 0, .m_value = 0};
         
     }
-    else if (candidateHuffCode.codeWord  == huffTable.acZeroRunLength.codeWord){
-        return RunLengthEncodedChannelOutput::RunLengthEncodedACCoefficient{.runLength = 15, .value = 0};
+    else if (candidateHuffCode.m_codeWord  == huffTable.m_acZeroRunLength.m_codeWord){
+        return RunLengthEncodedBlockChannelData::RunLengthEncodedACCoefficient{.m_runLength = 15, .m_value = 0};
     }
     // Read AC value and save to output
-    auto RRRR = huffTable.acLookup.at(candidateHuffCode.codeWord).RRRR;
-    auto SSSS = huffTable.acLookup.at(candidateHuffCode.codeWord).SSSS;
+    auto RRRR = huffTable.m_acLookup.at(candidateHuffCode.m_codeWord).m_RRRR;
+    auto SSSS = huffTable.m_acLookup.at(candidateHuffCode.m_codeWord).m_SSSS;
 
     if (SSSS == 0){
         // Only SSSS = 0 Huffman codes correspond to EOB and ZRL, which have already been handled
@@ -852,7 +852,7 @@ jpeg::RunLengthEncodedChannelOutput::RunLengthEncodedACCoefficient jpeg::Huffman
             for (size_t i = 1 ; i < SSSS ; ++i){
                 acCoeffAmplitude = appendBit(acCoeffAmplitude, inputStream.readNextBit(readProgress));
             }
-            return RunLengthEncodedChannelOutput::RunLengthEncodedACCoefficient{.runLength = RRRR, .value = int16_t(mask & acCoeffAmplitude)};
+            return RunLengthEncodedBlockChannelData::RunLengthEncodedACCoefficient{.m_runLength = RRRR, .m_value = int16_t(mask & acCoeffAmplitude)};
         }
         else{
             // coeff is negative
@@ -860,8 +860,7 @@ jpeg::RunLengthEncodedChannelOutput::RunLengthEncodedACCoefficient jpeg::Huffman
             for (size_t i = 1 ; i < SSSS ; ++i){
                 acCoeffAmplitudeComplement = appendBit(acCoeffAmplitudeComplement, inputStream.readNextBit(readProgress));
             }
-            return RunLengthEncodedChannelOutput::RunLengthEncodedACCoefficient{.runLength = RRRR, .value = int16_t(-int16_t(mask & ~acCoeffAmplitudeComplement))};
+            return RunLengthEncodedBlockChannelData::RunLengthEncodedACCoefficient{.m_runLength = RRRR, .m_value = int16_t(-int16_t(mask & ~acCoeffAmplitudeComplement))};
         }
     }
 }
-    

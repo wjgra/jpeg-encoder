@@ -23,12 +23,12 @@ jpeg::Quantiser::Quantiser(int quality){
         72,  92,  95,  98,  112, 100, 103, 99
     };
     float S = (quality < 50) ? 5000/quality : 200 - 2 * quality;
-    for (size_t i = 0 ; i < luminanceQuantisationMatrix.size() ; ++i){
-        luminanceQuantisationMatrix[i] = std::floor(
+    for (size_t i = 0 ; i < m_luminanceQuantisationMatrix.size() ; ++i){
+        m_luminanceQuantisationMatrix[i] = std::floor(
             (S * baseLuminanceMatrix[i] + 50) / 100
         );
-        if (luminanceQuantisationMatrix[i] == 0){
-            luminanceQuantisationMatrix[i] = 1;
+        if (m_luminanceQuantisationMatrix[i] == 0){
+            m_luminanceQuantisationMatrix[i] = 1;
         }
     }
 
@@ -44,41 +44,41 @@ jpeg::Quantiser::Quantiser(int quality){
         99,  99,  99,  99,  99,  99,  99,  99,
         99,  99,  99,  99,  99,  99,  99,  99
     };
-    for (size_t i = 0 ; i < chrominanceQuantisationMatrix.size() ; ++i){
-        chrominanceQuantisationMatrix[i] = std::floor(
+    for (size_t i = 0 ; i < m_chrominanceQuantisationMatrix.size() ; ++i){
+        m_chrominanceQuantisationMatrix[i] = std::floor(
             (S * baseChrominanceMatrix[i] + 50) / 100
         );
-        if (chrominanceQuantisationMatrix[i] == 0){
-            chrominanceQuantisationMatrix[i] = 1;
+        if (m_chrominanceQuantisationMatrix[i] == 0){
+            m_chrominanceQuantisationMatrix[i] = 1;
         }
     }
 }
 
-jpeg::QuantisedChannelOutput jpeg::Quantiser::quantise(DctBlockChannelData const& dctInput, bool useLuminanceMatrix) const{
-    QuantisedChannelOutput output;
+jpeg::QuantisedBlockChannelData jpeg::Quantiser::quantise(DctBlockChannelData const& dctInput, bool useLuminanceMatrix) const{
+    QuantisedBlockChannelData output;
     if (useLuminanceMatrix){
         for (size_t i = 0 ; i < dctInput.m_data.size() ; ++i){
-            output.data[i] = std::floor(0.5 + dctInput.m_data[i]/luminanceQuantisationMatrix[i]);
+            output.m_data[i] = std::floor(0.5 + dctInput.m_data[i]/m_luminanceQuantisationMatrix[i]);
         }
     }
     else{
         for (size_t i = 0 ; i < dctInput.m_data.size() ; ++i){
-            output.data[i] = std::floor(0.5 + dctInput.m_data[i]/chrominanceQuantisationMatrix[i]);
+            output.m_data[i] = std::floor(0.5 + dctInput.m_data[i]/m_chrominanceQuantisationMatrix[i]);
         }
     }
     return output;
 }
 
-jpeg::DctBlockChannelData jpeg::Quantiser::dequantise(jpeg::QuantisedChannelOutput const& quantisedChannelData, bool useLuminanceMatrix) const{
+jpeg::DctBlockChannelData jpeg::Quantiser::dequantise(jpeg::QuantisedBlockChannelData const& quantisedChannelData, bool useLuminanceMatrix) const{
     DctBlockChannelData output;
     if (useLuminanceMatrix){
-        for (size_t i = 0 ; i < quantisedChannelData.data.size() ; ++i){
-            output.m_data[i] = quantisedChannelData.data[i] * float(luminanceQuantisationMatrix[i]);
+        for (size_t i = 0 ; i < quantisedChannelData.m_data.size() ; ++i){
+            output.m_data[i] = quantisedChannelData.m_data[i] * float(m_luminanceQuantisationMatrix[i]);
         }
     }
     else{
-        for (size_t i = 0 ; i < quantisedChannelData.data.size() ; ++i){
-            output.m_data[i] = quantisedChannelData.data[i] * float(chrominanceQuantisationMatrix[i]);
+        for (size_t i = 0 ; i < quantisedChannelData.m_data.size() ; ++i){
+            output.m_data[i] = quantisedChannelData.m_data[i] * float(m_chrominanceQuantisationMatrix[i]);
         }
     }
     return output;
@@ -86,21 +86,17 @@ jpeg::DctBlockChannelData jpeg::Quantiser::dequantise(jpeg::QuantisedChannelOutp
 
 void jpeg::Quantiser::encodeHeaderQuantisationTables(BitStream& outputStream) const{
     outputStream.pushWord(markerDefineQuantisationTableSegmentDQT);
-    outputStream.pushWord(2 + 2 * 65); // len
-    outputStream.pushByte(0x00); // precision + table ID
+    outputStream.pushWord(2 + 2 * 65); // Length
+    outputStream.pushByte(0x00); // Precision + table ID
+
     /* Temporary hardcoded zigzag indices - extract zig zag method from entropyencoder for use here */
     std::array<uint8_t, BlockGrid::blockElements> zigZagIndices{0,1,8,16,9,2,3,10,17,24,32,25,18,11,4,5,12,19,26,33,40,48,41,34,27,20,13,6,7,14,21,28,35,42,49,56,57,50,43,36,29,22,15,23,30,37,44,51,58,59,52,45,38,31,39,46,53,60,61,54,47,55,62,63};
     for (auto const& index : zigZagIndices){
-        outputStream.pushByte(luminanceQuantisationMatrix[index]);
+        outputStream.pushByte(m_luminanceQuantisationMatrix[index]);
     }
-    /* for (auto& element : luminanceQuantisationMatrix){
-        outputStream.pushByte(element);
-    } */
-    outputStream.pushByte(0x01); // precision + table ID
-    /* for (auto& element : chrominanceQuantisationMatrix){
-        outputStream.pushByte(element);
-    } */
+
+    outputStream.pushByte(0x01); // Precision + table ID
     for (auto const& index : zigZagIndices){
-        outputStream.pushByte(chrominanceQuantisationMatrix[index]);
+        outputStream.pushByte(m_chrominanceQuantisationMatrix[index]);
     }
 }
